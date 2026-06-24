@@ -1,0 +1,49 @@
+# === Python Files ===
+# Python byte-code and optimization files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Python virtual environments (local dependencies)
+.venv/
+venv/
+ENV/
+env/
+
+# Python local environment secrets and variables
+.env
+
+
+# === Arduino Build Artifacts ===
+# Temporary directories where Arduino compiles your sketch
+build/
+bin/
+out/
+
+
+# === Compiled Microcontroller Binaries ===
+# Raw binary outputs flashed onto the board
+*.hex
+*.elf
+*.bin
+
+
+# === IDE & Extension Files ===
+# Arduino IDE 2.x local layout state and local hardware setups
+.arduino/
+arduino.json
+
+# Visual Studio Code / Editor cache (in case someone opens the folder there)
+.vscode/
+.cppproperties.json
+ipch/
+_vm/
+
+
+# === System & Core Editor Backups ===
+# System junk and text editor temporary swap files
+.DS_Store
+Thumbs.db
+*~
+*.swp
+*.bak
