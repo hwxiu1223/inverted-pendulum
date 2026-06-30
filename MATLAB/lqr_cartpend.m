@@ -25,7 +25,7 @@ K = lqr(A,B,Q,R);
 
 tspan = 0:0.1:10;
 y0 = [-3; 0; pi+.1; 0];
-[t,y] = ode45(@(t,y)cartpend(y,params,d,-K*(y-[0; 0; pi; 0])),tspan,y0);
+[t,y] = ode45(@(t,y)cartpend(y,-K*(y-[0; 0; pi; 0]),params),tspan,y0);
 
 for k=1:length(t)
     draw_cartpend(y(k,:),params);

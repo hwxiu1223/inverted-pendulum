@@ -1,4 +1,4 @@
-function dy = cartpend(y,d,u,params)
+function dy = cartpend(y,u,params)
 
     params = pendsys();
     g = params.g;
