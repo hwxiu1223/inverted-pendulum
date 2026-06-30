@@ -1,18 +1,43 @@
+/*
+The purpose of the arduino is to be a homemade motor controller,
+so its functions are:
+- Drives motor
+- Reads from motor encoders
+
+vendor documentation:
+- Motor Driver: https://www.handsontec.com/dataspecs/module/BTS7960%20Motor%20Driver.pdf
+- Motor: 
+- Rotary Encoder:
+- Magnetic Encoder:
+*/
+
+
 #include <Arduino.h>
 
-// put function declarations here:
-int myFunction(int, int);
+#include <"main.h">
+
+int RPWM_Output = 5; // Arduino PWM output pin 5; connect to IBT-2 pin 1 (RPWM)
+int LPWM_Output = 6; // Arduino PWM output pin 6; connect to IBT-2 pin 2 (LPWM)
 
 void setup() {
-  // put your setup code here, to run once:
-  int result = myFunction(2, 3);
+  pinMode(LED_BUILTIN, OUTPUT);
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
+  // blinky
+  digitalWrite(LED_BUILTIN, HIGH);   // Turn the LED on
+  delay(500);                       // Wait for a second
+  digitalWrite(LED_BUILTIN, LOW);    // Turn the LED off
+  delay(500);                       // Wait for a second
 }
 
-// put function definitions here:
-int myFunction(int x, int y) {
-  return x + y;
+void drive_motor(int valuePWM, bool direction) {
+  if (direction == 1) {
+    analogWrite(LPWM_Output, valuePWM);
+    analogWrite(RPWM_Output, 0);
+  }
+  else {
+    analogWrite(LPWM_Output, 0);
+    analogWrite(RPWM_Output, valuePWM);
+  }
 }
