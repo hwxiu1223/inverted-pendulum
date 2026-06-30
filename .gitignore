@@ -37,7 +37,7 @@ arduino.json
 .vscode/
 ipch/
 _vm/
-.code-workspace
+*.code-workspace
 
 
 # === System & Core Editor Backups ===

@@ -14,7 +14,7 @@ vendor documentation:
 
 #include <Arduino.h>
 
-#include <"main.h">
+#include "main.h"
 
 int RPWM_Output = 5; // Arduino PWM output pin 5; connect to IBT-2 pin 1 (RPWM)
 int LPWM_Output = 6; // Arduino PWM output pin 6; connect to IBT-2 pin 2 (LPWM)
