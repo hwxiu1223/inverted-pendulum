@@ -9,21 +9,21 @@ params = pendsys();
     d = params.d;
 
     A = [0 1 0 0;
-        0 0 -m*g/M 0;
+        0 -d/M -m*g/M 0;
         0 0 0 1;
-        0 0 (M+m)*g/(M*L) 0];
+        0 -1*d/(M*L) -1*(M+m)*g/(M*L) 0];
 
-    B = [0; 1/M; 0; -1/(M*L)];
+    B = [0; 1/M; 0; 1/(M*L)];
 
 Q = [1 0 0 0;
     0 1 0 0;
     0 0 10 0;
     0 0 0 100];
-R = 0.01;
+R = 0.001;
 
 K = lqr(A,B,Q,R);
 
-tspan = 0:0.1:10;
+tspan = 0:0.1:100;
 y0 = [-3; 0; pi+.1; 0];
 [t,y] = ode45(@(t,y)cartpend(y,-K*(y-[0; 0; pi; 0]),params),tspan,y0);
 

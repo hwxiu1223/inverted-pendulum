@@ -4,7 +4,7 @@ function params = pendsys(params)
     end
 
     % constants
-    params.g = 9.81; % gravitational acceleration (m/s^2)
+    params.g = -9.81; % gravitational acceleration (m/s^2)
     params.L = 2.0;  % length of the pendulum (m)
     params.m = 1.0;  % mass of the pendulum (kg)
     params.M = 5.0; % mass of the cart (kg)
