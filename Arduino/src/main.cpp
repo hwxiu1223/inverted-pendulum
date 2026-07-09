@@ -32,14 +32,14 @@ const uint8_t R_EN = 3; // Right Enable pin (can be any digital pin)
 
 // Library Objects
 BTS7960 motorDriver(L_EN, R_EN, L_PWM, R_PWM);
-AS5600 rotaryEncoder;
+AS5600 magneticEncoder;
 
 void setup() {
   Serial.begin(9600);
   pinMode(LED_BUILTIN, OUTPUT);
   motorDriver.Enable();
-  rotaryEncoder.begin();
-  while (!rotaryEncoder.isConnected()) {
+  magneticEncoder.begin();
+  while (!magneticEncoder.isConnected()) {
     Serial.println("AS5600 not detected!");
 
     digitalWrite(LED_BUILTIN, HIGH);
