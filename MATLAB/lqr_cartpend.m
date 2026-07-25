@@ -22,10 +22,11 @@ Q = [1 0 0 0;
 R = 0.001;
 
 K = lqr(A,B,Q,R);
-
-tspan = 0:0.1:100;
+refFunc = @(t) [3*square(2*pi*t/20); 0; pi; 0];
+tspan = 0:.5:100;
 y0 = [-3; 0; pi+.1; 0];
-[t,y] = ode45(@(t,y)cartpend(y,-K*(y-[0; 0; pi; 0]),params),tspan,y0);
+[t,y] = ode45(@(t,y) cartpend(y, -K*(y - refFunc(t)), params), tspan, y0);
+% [t,y] = ode45(@(t,y)cartpend(y,-K*(y-[0; 0; pi; 0]),params),tspan,y0);
 
 figure('Name', 'Inverted Pendulum Simulation', 'Position', [100, 100, 800, 600]);
 
