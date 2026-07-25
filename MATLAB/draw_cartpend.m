@@ -35,7 +35,7 @@ function draw_cartpend(t_hist, y_hist, params)
     hold off; % Clear previous frame
     
     % Draw ground
-    plot([-10 10], [0 0], 'w', 'LineWidth', 2);
+    plot([-20 20], [0 0], 'w', 'LineWidth', 2);
     hold on;
     
     % Draw cart, wheels, pendulum, and mass
@@ -46,7 +46,7 @@ function draw_cartpend(t_hist, y_hist, params)
     rectangle('Position', [px-mr/2, py-mr/2, mr, mr], 'Curvature', 1, 'FaceColor', [.3 0.3 1], 'EdgeColor', [1 1 1]);
     
     % Formatting
-    xlim([-5 5]);
+    xlim([-20 20]);
     ylim([-2 2.5]);
     set(gca, 'Color', 'k', 'XColor', 'w', 'YColor', 'w');
     title('Cart-Pendulum Animation', 'Color', 'w');
