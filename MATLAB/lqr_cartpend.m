@@ -27,6 +27,8 @@ tspan = 0:0.1:100;
 y0 = [-3; 0; pi+.1; 0];
 [t,y] = ode45(@(t,y)cartpend(y,-K*(y-[0; 0; pi; 0]),params),tspan,y0);
 
-for k=1:length(t)
-    draw_cartpend(y(k,:),params);
+figure('Name', 'Inverted Pendulum Simulation', 'Position', [100, 100, 800, 600]);
+
+for k = 1:length(t)
+    draw_cartpend(t(1:k), y(1:k, :), params);
 end
