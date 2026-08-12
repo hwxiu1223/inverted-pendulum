@@ -17,9 +17,9 @@ Libraries:
 Serial Communication Protocol:
   Command/Msg type, data, newline character
   Commands: 
-  M - set motor speed
-  R - request encoder data
-  E - encoder data
+  M - set motor speed, sent by Python
+  R - request encoder data, sent by Python
+  E - encoder data, sent by Arduino
   Examples:
   Set motor speed to 150:   M,150\n
   Request encoder data:     R\n
@@ -27,6 +27,7 @@ Serial Communication Protocol:
 
 Pins Setup:
   AS5600: VCC-power (5v or 3v3), GND-ground, SCL-SCL, SDA-SDA
+  Motor Driver: VCC- (5v), GND-ground, R_EN-power, L_EN-power, R_PWM-digital 5, L_PWM-digital 6
 */
 
 #include <Arduino.h>
@@ -54,14 +55,14 @@ void setup() {
   // magneticEncoder.begin();
 
 
-//   while (!magneticEncoder.isConnected()) {
-//     Serial.println("AS5600 not detected!");
+  while (!magneticEncoder.isConnected()) {
+    Serial.println("AS5600 not detected!");
 
-//     digitalWrite(LED_BUILTIN, HIGH);
-//     delay(100);                  
-//     digitalWrite(LED_BUILTIN, LOW);    
-//     delay(100);  
-//   }
+    digitalWrite(LED_BUILTIN, HIGH);
+    delay(100);                  
+    digitalWrite(LED_BUILTIN, LOW);    
+    delay(100);  
+  }
 }
 
 void loop() {
@@ -87,15 +88,15 @@ void loop() {
     }
     
     // Parse Request for Data (e.g., "R")
-    // else if (message == "R") {
-    //   int magAngle = magneticEncoder.readAngle();
-    //   int rotaryCount = 0; // Replace with your rotary encoder variable
+    else if (message == "R") {
+      int magAngle = magneticEncoder.readAngle();
+      int rotaryCount = 0; // Replace with your rotary encoder variable
       
-    //   // Send back: E,magAngle,rotaryCount\n
-    //   Serial.print("E,");
-    //   Serial.print(magAngle);
-    //   Serial.print(",");
-    //   Serial.println(rotaryCount);
-    // }
+      // Send back: E,magAngle,rotaryCount\n
+      Serial.print("E,");
+      Serial.print(magAngle);
+      Serial.print(",");
+      Serial.println(rotaryCount);
+    }
   }          
 }

@@ -29,93 +29,44 @@ def read_encoders():
         return mag_val, rotary_val
     return None, None
 
+def run_step(speed):
+    print(f"Set motor: {speed}")
+    set_motor(speed)
+    time.sleep(0.01)
+
+    mag_val, rotary_val = read_encoders()
+    print("MAG: raw-", mag_val, " rad-", mag_val * AS5600_RAW_TO_RADIANS, " deg-", mag_val * AS5600_RAW_TO_DEGREES, ", ROTARY: ", rotary_val)
 
 while(1):
     # --- 0 to 255 ---
-    print("Set motor: 0")
-    set_motor(0)
-    time.sleep(1)
+    run_step(0)
+    run_step(64)
+    run_step(128)
+    run_step(192)
+    run_step(255)
 
-    print("Set motor: 64")
-    set_motor(64)
-    time.sleep(1)
-
-    print("Set motor: 128")
-    set_motor(128)
-    time.sleep(1)
-
-    print("Set motor: 192")
-    set_motor(192)
-    time.sleep(1)
-
-    print("Set motor: 255")
-    set_motor(255)
     time.sleep(1)
 
     # --- 255 to 0 ---
-    print("Set motor: 255")
-    set_motor(255)
-    time.sleep(1)
+    run_step(192)
+    run_step(128)
+    run_step(64)
+    run_step(0)
 
-    print("Set motor: 192")
-    set_motor(192)
-    time.sleep(1)
-
-    print("Set motor: 128")
-    set_motor(128)
-    time.sleep(1)
-
-    print("Set motor: 64")
-    set_motor(64)
-    time.sleep(1)
-
-    print("Set motor: 0")
-    set_motor(0)
-    time.sleep(1)
+    time.sleep(0.5)
 
     # --- 0 to -255 ---
-    print("Set motor: 0")
-    set_motor(0)
-    time.sleep(1)
+    run_step(-64)
+    run_step(-128)
+    run_step(-192)
+    run_step(-255)
 
-    print("Set motor: -64")
-    set_motor(-64)
-    time.sleep(1)
-
-    print("Set motor: -128")
-    set_motor(-128)
-    time.sleep(1)
-
-    print("Set motor: -192")
-    set_motor(-192)
-    time.sleep(1)
-
-    print("Set motor: -255")
-    set_motor(-255)
     time.sleep(1)
 
     # --- -255 to 0 ---
-    print("Set motor: -255")
-    set_motor(-255)
-    time.sleep(1)
+    run_step(-192)
+    run_step(-128)
+    run_step(-64)
+    run_step(0)
 
-    print("Set motor: -192")
-    set_motor(-192)
-    time.sleep(1)
-
-    print("Set motor: -128")
-    set_motor(-128)
-    time.sleep(1)
-
-    print("Set motor: -64")
-    set_motor(-64)
-    time.sleep(1)
-
-    print("Set motor: 0")
-    set_motor(0)
-    time.sleep(1)
-
-    # mag_val, rotary_val = read_encoders()
-
-    # print("MAG: raw-", mag_val, " rad-", mag_val * AS5600_RAW_TO_RADIANS, " deg-", mag_val * AS5600_RAW_TO_DEGREES, ", ROTARY: ", rotary_val)
-    # time.sleep(1)
+    time.sleep(0.5)
