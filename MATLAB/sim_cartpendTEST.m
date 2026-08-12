@@ -7,13 +7,20 @@ params = pendsys();
     m = params.m;
     M = params.M;
     d = params.d;
+    b = params.b;
 
     A = [0 1 0 0;
-        0 -d/M -m*g/M 0;
+        0 -d/M -m*g/M -b/(M*L);
         0 0 0 1;
-        0 -1*d/(M*L) -1*(M+m)*g/(M*L) 0];
-
+        0 -d/(M*L) -(M+m)*g/(M*L) -(M+m)*b/(m*M*L^2)];
     B = [0; 1/M; 0; 1/(M*L)];
+
+    %A = [0 1 0 0;
+     %   0 -d/M -m*g/M 0;
+      %  0 0 0 1;
+       % 0 -1*d/(M*L) -1*(M+m)*g/(M*L) 0];
+
+    %B = [0; 1/M; 0; 1/(M*L)];
 
 Q = [1 0 0 0;
     0 1 0 0;
