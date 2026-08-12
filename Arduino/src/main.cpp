@@ -43,25 +43,25 @@ const uint8_t R_EN = 3; // Right Enable pin (can be any digital pin)
 
 
 // Library Objects
-// BTS7960 motorDriver(L_EN, R_EN, L_PWM, R_PWM);
+BTS7960 motorDriver(L_EN, R_EN, L_PWM, R_PWM);
 AS5600 magneticEncoder;
 
 void setup() {
   Serial.begin(115200);
   Wire.begin();
   pinMode(LED_BUILTIN, OUTPUT);
-  // motorDriver.Enable();
-  magneticEncoder.begin();
+  motorDriver.Enable();
+  // magneticEncoder.begin();
 
 
-  while (!magneticEncoder.isConnected()) {
-    Serial.println("AS5600 not detected!");
+//   while (!magneticEncoder.isConnected()) {
+//     Serial.println("AS5600 not detected!");
 
-    digitalWrite(LED_BUILTIN, HIGH);
-    delay(100);                  
-    digitalWrite(LED_BUILTIN, LOW);    
-    delay(100);  
-  }
+//     digitalWrite(LED_BUILTIN, HIGH);
+//     delay(100);                  
+//     digitalWrite(LED_BUILTIN, LOW);    
+//     delay(100);  
+//   }
 }
 
 void loop() {
@@ -77,19 +77,25 @@ void loop() {
       String speedString = message.substring(commaIndex + 1);
       int speed = speedString.toInt();
       
-      // Add your BTS7960 logic here based on 'speed'
+      if (speed >= 0) {
+        motorDriver.TurnRight(speed);
+      } 
+      else {
+        speed = -speed;
+        motorDriver.TurnLeft(speed);
+      }
     }
     
     // Parse Request for Data (e.g., "R")
-    else if (message == "R") {
-      int magAngle = magneticEncoder.readAngle();
-      int rotaryCount = 0; // Replace with your rotary encoder variable
+    // else if (message == "R") {
+    //   int magAngle = magneticEncoder.readAngle();
+    //   int rotaryCount = 0; // Replace with your rotary encoder variable
       
-      // Send back: E,magAngle,rotaryCount\n
-      Serial.print("E,");
-      Serial.print(magAngle);
-      Serial.print(",");
-      Serial.println(rotaryCount);
-    }
+    //   // Send back: E,magAngle,rotaryCount\n
+    //   Serial.print("E,");
+    //   Serial.print(magAngle);
+    //   Serial.print(",");
+    //   Serial.println(rotaryCount);
+    // }
   }          
 }
