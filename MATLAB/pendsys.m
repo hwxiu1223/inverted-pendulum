@@ -8,9 +8,12 @@ function params = pendsys(params)
     params.L = 2.0;  % length of the pendulum (m)
     params.m = 1.0;  % mass of the pendulum (kg)
     params.M = 5.0; % mass of the cart (kg)
-    params.W = 1;  % cart width
-    params.H = .5; % cart height
-    params.wr = .2; % wheel radius
-    params.mr = .3; % mass radius
+    params.W = 5;  % cart width (m)
+    params.H = .5; % cart height (m)
+    params.wr = .4; % wheel radius
+    params.mr = .7; % mass radius
     params.d = 1;
+    params.b = 0.02;        % pendulum pivot/bearing friction (N*m*s/rad)
+    params.cd_cart = 0.05;  % cart aerodynamic drag coeff, quadratic in v (N*s^2/m^2)
+    params.cd_pend = 0.005;  % pendulum aerodynamic drag coeff, quadratic in w (N*m*s^2/rad^2)
 end

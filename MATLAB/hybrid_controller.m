@@ -9,8 +9,8 @@ function dy = hybrid_controller(t, y, params, K)
     theta_wrapped = mod(theta + pi, 2*pi) - pi;
     
     % --- 1. LQR CATCH & BALANCE ---
-    if abs(theta - pi) < 0.6 % Within ~23 degrees of upright
-        u = -K * (y - [0; 0; pi; 0]); 
+    if abs(theta - pi) < 0.6
+        u = -K * (y - [y(1); 0; pi; 0]); 
         
    % --- 2. ENERGY SWING-UP ---
     else
@@ -27,10 +27,10 @@ function dy = hybrid_controller(t, y, params, K)
             E_target = params.m * g_mag * params.L;
             
             % INCREASED ENERGY GAIN
-            ke = 2.0; 
+            ke = 4.0; 
             
             % Swing-up law
-            u = ke * (E - E_target) * dtheta * cos(theta) - 0.1 * x - 0.2 * dx;
+            u = ke * (E - E_target) * dtheta * cos(theta) - 0.2 * dx;
         end
         
         % INCREASED MOTOR SATURATION (Allow up to 150 Newtons)
