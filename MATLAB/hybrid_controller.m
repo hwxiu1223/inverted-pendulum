@@ -17,7 +17,7 @@ function dy = hybrid_controller(t, y, params, K)
         % Detect if we are stuck at the bottom
         if abs(theta_wrapped) < 0.05 && abs(dtheta) < 0.05
             % STRONGER KICK for a 5kg cart
-            u = 50; 
+            u = 50; % 5kg cart, need to lower maybe. See ai
             
         else
             % NORMAL SWING-UP: Use absolute value of gravity for energy math

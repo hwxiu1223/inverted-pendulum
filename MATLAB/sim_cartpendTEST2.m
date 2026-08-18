@@ -22,7 +22,8 @@ K = [0, K3];
 
 tspan = 0:0.5:30;
 y0 = [0; 0; 0; 0]; 
-[t,y] = ode45(@(t,y) hybrid_controller(t, y, params, K), tspan, y0);
+ [t,y] = ode45(@(t,y) hybrid_controller(t, y, params, K), tspan, y0);
+% [t,y] = ode45(@(t,y)cartpend(y,-K*(y-[y(1); 0; pi; 0]),params),tspan,y0);
 figure('Name', 'Inverted Pendulum Simulation', 'Position', [100, 100, 800, 600]);
 for k = 1:length(t)
     draw_cartpend(t(1:k), y(1:k, :), params);
