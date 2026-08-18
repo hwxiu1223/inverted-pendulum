@@ -1,6 +1,7 @@
 import serial
 import time
 import math
+import keyboard
 
 #### CONSTANTS ####
 AS5600_RAW_TO_RADIANS = (math.pi * 2.0) / 4096
@@ -38,35 +39,10 @@ def run_step(speed):
     print("MAG: raw-", mag_val, " rad-", mag_val * AS5600_RAW_TO_RADIANS, " deg-", mag_val * AS5600_RAW_TO_DEGREES, ", ROTARY: ", rotary_val)
 
 while(1):
-    # --- 0 to 255 ---
-    run_step(0)
-    run_step(64)
-    run_step(128)
-    run_step(192)
-    run_step(255)
-
-    time.sleep(1)
-
-    # --- 255 to 0 ---
-    run_step(192)
-    run_step(128)
-    run_step(64)
-    run_step(0)
-
-    time.sleep(0.5)
-
-    # --- 0 to -255 ---
-    run_step(-64)
-    run_step(-128)
-    run_step(-192)
-    run_step(-255)
-
-    time.sleep(1)
-
-    # --- -255 to 0 ---
-    run_step(-192)
-    run_step(-128)
-    run_step(-64)
-    run_step(0)
-
-    time.sleep(0.5)
+    if keyboard.is_pressed('right'):
+        run_step(255)
+    elif keyboard.is_pressed('left'):
+        run_step(-255)
+    else:
+        run_step(0)
+    
