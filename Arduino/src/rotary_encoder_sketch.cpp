@@ -1,4 +1,4 @@
-#include "arduino_secrets.h"
+#include <Arduino.h>
 
 const int pinA = 2;
 const int pinB = 3;
@@ -10,8 +10,6 @@ void setup() {
   pinMode(pinA, INPUT_PULLUP);
   pinMode(pinB, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(pinA), interrupt, CHANGE); //triggers whenever A changes
-  
-
 }
 
 void loop() {

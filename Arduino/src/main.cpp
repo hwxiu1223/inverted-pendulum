@@ -41,19 +41,36 @@ const uint8_t R_PWM = 5; // Arduino PWM output pin 5; connect to IBT-2 pin 1 (RP
 const uint8_t L_PWM = 6; // Arduino PWM output pin 6; connect to IBT-2 pin 2 (LPWM)
 const uint8_t L_EN = 4; // Left Enable pin (can be any digital pin)
 const uint8_t R_EN = 3; // Right Enable pin (can be any digital pin)
+const uint8_t PIN_A = 2;
+const uint8_t PIN_B = 3;
+
+volatile long enc_count = 0;
 
 
 // Library Objects
 BTS7960 motorDriver(L_EN, R_EN, L_PWM, R_PWM);
 AS5600 magneticEncoder;
 
+void interrupt(){
+  if (digitalRead(PIN_A) == digitalRead(PIN_B)) {  
+    enc_count++;
+  }
+  else  {
+    enc_count--;
+  }
+}
+
 void setup() {
   Serial.begin(115200);
   Wire.begin();
-  pinMode(LED_BUILTIN, OUTPUT);
   motorDriver.Enable();
   magneticEncoder.begin();
-
+  
+  pinMode(LED_BUILTIN, OUTPUT);
+  pinMode(PIN_A, INPUT_PULLUP);
+  pinMode(PIN_B, INPUT_PULLUP);
+  
+  attachInterrupt(digitalPinToInterrupt(PIN_A), interrupt, CHANGE); //triggers whenever A changes
 
   while (!magneticEncoder.isConnected()) {
     digitalWrite(LED_BUILTIN, HIGH);
@@ -88,13 +105,12 @@ void loop() {
     // Parse Request for Data (e.g., "R")
     else if (message == "R") {
       int magAngle = magneticEncoder.readAngle();
-      int rotaryCount = 0; // Replace with your rotary encoder variable
       
       // Send back: E,magAngle,rotaryCount\n
       Serial.print("E,");
       Serial.print(magAngle);
       Serial.print(",");
-      Serial.println(rotaryCount);
+      Serial.println(enc_count);
     }
   }          
 }
