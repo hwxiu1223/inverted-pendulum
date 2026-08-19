@@ -14,6 +14,13 @@ time.sleep(2) # Wait for Arduino to reset
 saved_enc_count = 0
 butt_pressed = False
 
+locked = True;
+
+# Track last printed encoder values so we only print on change
+last_mag_val = None
+last_rotary_val = None
+last_speed_val = 0
+
 def set_motor(speed):
     # Sends: M,150\n, between -255 and 255
     command = f"M,{speed}\n"
@@ -34,12 +41,27 @@ def read_encoders():
     return None, None
 
 def run_step(speed):
-    print(f"Set motor: {speed}")
-    set_motor(speed)
-    time.sleep(0.01)
+    global last_mag_val, last_rotary_val, last_speed_val
 
     mag_val, rotary_val = read_encoders()
-    print("MAG: raw-", mag_val, " rad-", mag_val * AS5600_RAW_TO_RADIANS, " deg-", mag_val * AS5600_RAW_TO_DEGREES, ", ROTARY: ", rotary_val)
+
+    if mag_val is not None and rotary_val is not None:
+        if mag_val != last_mag_val or rotary_val != last_rotary_val:
+            print("MAG: raw-", mag_val, " rad-", mag_val * AS5600_RAW_TO_RADIANS, " deg-", mag_val * AS5600_RAW_TO_DEGREES, ", ROTARY: ", rotary_val)
+            last_mag_val = mag_val
+            last_rotary_val = rotary_val
+
+    time.sleep(0.01)
+    if locked and ((speed < 0 and rotary_val < 500) or (speed > 0 and rotary_val > 29500)):
+        speed = 0
+
+    set_motor(speed)
+
+    if (speed != last_speed_val):
+        print(f"Set motor: ", speed)
+        
+    last_speed_val = speed
+
 
 def save_enc_val():
     global saved_enc_count
@@ -58,6 +80,15 @@ while(1):
         run_step(255)
     else:
         run_step(0)
+
+    if keyboard.is_pressed('u'):
+        if locked:  
+            locked = False
+            print("!! Cart Unlocked !!")
+        else:
+            locked = True
+            print("!! Cart Locked !!")
+        time.sleep(0.10)
 ## saving the last encoder count
     if keyboard.is_pressed('s'):
         if not butt_pressed:
