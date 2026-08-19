@@ -11,6 +11,9 @@ AS5600_RAW_TO_DEGREES = 360.0 / 4096
 ser = serial.Serial(COM_PORT, 115200, timeout=1)
 time.sleep(2) # Wait for Arduino to reset
 
+saved_enc_count = 0
+butt_pressed = False
+
 def set_motor(speed):
     # Sends: M,150\n, between -255 and 255
     command = f"M,{speed}\n"
@@ -38,6 +41,16 @@ def run_step(speed):
     mag_val, rotary_val = read_encoders()
     print("MAG: raw-", mag_val, " rad-", mag_val * AS5600_RAW_TO_RADIANS, " deg-", mag_val * AS5600_RAW_TO_DEGREES, ", ROTARY: ", rotary_val)
 
+def save_enc_val():
+    global saved_enc_count
+    mag_val, rot_val = read_encoders()
+    count = rot_val
+
+    if rot_val is not None:
+        print("Saved enc count: ", count)
+        return rot_val
+    return None
+
 while(1):
     if keyboard.is_pressed('right'):
         run_step(-255)
@@ -45,4 +58,10 @@ while(1):
         run_step(255)
     else:
         run_step(0)
-    
+## saving the last encoder count
+    if keyboard.is_pressed('s'):
+        if not butt_pressed:
+            saved_enc_count = save_enc_val()
+            butt_pressed = True
+    else:
+        butt_pressed = False
