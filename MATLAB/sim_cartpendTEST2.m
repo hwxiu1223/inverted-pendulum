@@ -16,14 +16,14 @@ params = pendsys();
 Q_r = [1 0 0;
        0 10 0;
        0 0 100];
-R = 0.001;
+R = 50;
 K3 = lqr(A_r, B_r, Q_r, R);
-K = [0, K3];
-
+K = [0, K3]; 
+disp('K3 gains:'); disp(K3)
 tspan = 0:0.5:30;
 y0 = [0; 0; 0; 0]; 
- [t,y] = ode45(@(t,y) hybrid_controller(t, y, params, K), tspan, y0);
-% [t,y] = ode45(@(t,y)cartpend(y,-K*(y-[y(1); 0; pi; 0]),params),tspan,y0);
+  [t,y] = ode15s(@(t,y)hybrid_controller(t, y, params, K), tspan, y0); %was originally ode45. But 15s was better according to AI
+%[t,y] = ode45(@(t,y)cartpend(y,-K*(y-[y(1); 0; pi; 0]),params),tspan,y0);
 figure('Name', 'Inverted Pendulum Simulation', 'Position', [100, 100, 800, 600]);
 for k = 1:length(t)
     draw_cartpend(t(1:k), y(1:k, :), params);

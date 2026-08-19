@@ -46,8 +46,8 @@ function draw_cartpend(t_hist, y_hist, params)
     rectangle('Position', [px-mr/2, py-mr/2, mr, mr], 'Curvature', 1, 'FaceColor', [.3 0.3 1], 'EdgeColor', [1 1 1]);
     
     % Formatting
-    xlim([-50 50]);
-    ylim([-2 2.5]);
+    xlim([-30 30]);
+    ylim([-2.5 2.8]);
     set(gca, 'Color', 'k', 'XColor', 'w', 'YColor', 'w');
     title('Cart-Pendulum Animation', 'Color', 'w');
 
@@ -69,7 +69,7 @@ function draw_cartpend(t_hist, y_hist, params)
 
     % Dynamic x-axis that grows with time, fixed y-axis
     xlim([0, max(10, t_hist(end))]); 
-    ylim([-25 25]); % Adjust bounds based on your expected swing range
+    ylim([-10 10]); % Adjust bounds based on your expected swing range
     
     % Formatting to match the black theme
     set(gca, 'Color', 'k', 'XColor', 'w', 'YColor', 'w', 'GridColor', [0.3 0.3 0.3]);
