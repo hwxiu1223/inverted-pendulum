@@ -78,6 +78,30 @@ void setup() {
     digitalWrite(LED_BUILTIN, LOW);    
     delay(100);  
   }
+
+  char ready = 0;
+
+  while (!ready) {
+    Serial.println("REQ");
+    digitalWrite(LED_BUILTIN, HIGH);
+    delay(100);                  
+    digitalWrite(LED_BUILTIN, LOW);  
+    delay(900);
+
+    if (Serial.available() > 0) {
+      String message = Serial.readStringUntil('\n');
+      message.trim();
+
+      if (message.startsWith("RET")) {
+        int commaIndex = message.indexOf(',');
+        String valueStr = message.substring(commaIndex + 1);
+        enc_count = valueStr.toInt();
+
+        Serial.println("REC");
+        ready = 1;
+      }
+    }
+  }
 }
 
 void loop() {

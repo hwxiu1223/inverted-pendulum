@@ -38,6 +38,8 @@ def run_step(speed):
     mag_val, rotary_val = read_encoders()
     print("MAG: raw-", mag_val, " rad-", mag_val * AS5600_RAW_TO_RADIANS, " deg-", mag_val * AS5600_RAW_TO_DEGREES, ", ROTARY: ", rotary_val)
 
+
+
 while(1):
     print("Hi")
     
