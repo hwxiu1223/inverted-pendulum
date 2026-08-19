@@ -39,10 +39,8 @@ Pins Setup:
 ////// PIN ASSIGNMENTS //////
 const uint8_t R_PWM = 5; // Arduino PWM output pin 5; connect to IBT-2 pin 1 (RPWM)
 const uint8_t L_PWM = 6; // Arduino PWM output pin 6; connect to IBT-2 pin 2 (LPWM)
-const uint8_t L_EN = 4; // Left Enable pin (can be any digital pin)
-const uint8_t R_EN = 3; // Right Enable pin (can be any digital pin)
-const uint8_t PIN_A = 2;
-const uint8_t PIN_B = 3;
+const uint8_t PIN_A = 1;
+const uint8_t PIN_B = 2;
 
 volatile long enc_count = 0;
 
