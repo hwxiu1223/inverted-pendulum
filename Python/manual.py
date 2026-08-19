@@ -1,3 +1,4 @@
+import os
 import serial
 import time
 import math
@@ -14,6 +15,8 @@ time.sleep(2) # Wait for Arduino to reset
 
 saved_enc_count = 0
 butt_pressed = False
+
+enc_count_file = os.path.join(os.path.dirname(__file__), "enc_counts.txt")
 
 def set_motor(speed):
     # Sends: M,150\n, between -255 and 255
@@ -51,9 +54,8 @@ def save_enc_val():
         print("Saved enc count: ", count)
         dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        with open("enc_counts.txt", "a") as file:
+        with open(enc_count_file, "a") as file:
             file.write(f"{dt}, {rot_val}\n")
-
 
         return rot_val
     return None
