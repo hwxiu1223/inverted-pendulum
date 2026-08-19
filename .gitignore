@@ -56,3 +56,4 @@ Thumbs.db
 .vscode/ipch
 
 # === Project Specific ===
+config.py
