@@ -40,9 +40,9 @@ def run_step(speed):
 
 while(1):
     if keyboard.is_pressed('right'):
-        run_step(255)
-    elif keyboard.is_pressed('left'):
         run_step(-255)
+    elif keyboard.is_pressed('left'):
+        run_step(255)
     else:
         run_step(0)
     
