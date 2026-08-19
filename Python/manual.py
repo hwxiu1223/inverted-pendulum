@@ -3,6 +3,7 @@ import time
 import math
 import keyboard
 from config import COM_PORT
+from datetime import datetime
 
 #### CONSTANTS ####
 AS5600_RAW_TO_RADIANS = (math.pi * 2.0) / 4096
@@ -48,6 +49,12 @@ def save_enc_val():
 
     if rot_val is not None:
         print("Saved enc count: ", count)
+        dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        with open("enc_counts.txt", "a") as file:
+            file.write(f"{dt}, {rot_val}\n")
+
+
         return rot_val
     return None
 
