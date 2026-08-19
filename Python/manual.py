@@ -2,13 +2,13 @@ import serial
 import time
 import math
 import keyboard
+from config import COM_PORT
 
 #### CONSTANTS ####
 AS5600_RAW_TO_RADIANS = (math.pi * 2.0) / 4096
 AS5600_RAW_TO_DEGREES = 360.0 / 4096
 
-# Connect to Uno R4 (Check your specific COM port / /dev/tty...)
-ser = serial.Serial('COM3', 115200, timeout=1)
+ser = serial.Serial(COM_PORT, 115200, timeout=1)
 time.sleep(2) # Wait for Arduino to reset
 
 def set_motor(speed):

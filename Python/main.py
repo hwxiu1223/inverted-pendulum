@@ -2,13 +2,13 @@ import serial
 import time
 import math
 import keyboard
+from config import COM_PORT
 
 #### CONSTANTS ####
 AS5600_RAW_TO_RADIANS = (math.pi * 2.0) / 4096
 AS5600_RAW_TO_DEGREES = 360.0 / 4096
 
-# Connect to Uno R4 (Check your specific COM port / /dev/tty...)
-ser = serial.Serial('COM3', 115200, timeout=1)
+ser = serial.Serial(COM_PORT, 115200, timeout=1)
 time.sleep(2) # Wait for Arduino to reset
 
 def set_motor(speed):
@@ -39,10 +39,5 @@ def run_step(speed):
     print("MAG: raw-", mag_val, " rad-", mag_val * AS5600_RAW_TO_RADIANS, " deg-", mag_val * AS5600_RAW_TO_DEGREES, ", ROTARY: ", rotary_val)
 
 while(1):
-    if keyboard.is_pressed('right'):
-        run_step(255)
-    elif keyboard.is_pressed('left'):
-        run_step(-255)
-    else:
-        run_step(0)
+    print("Hi")
     

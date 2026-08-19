@@ -52,12 +52,10 @@ void setup() {
   Wire.begin();
   pinMode(LED_BUILTIN, OUTPUT);
   motorDriver.Enable();
-  // magneticEncoder.begin();
+  magneticEncoder.begin();
 
 
   while (!magneticEncoder.isConnected()) {
-    Serial.println("AS5600 not detected!");
-
     digitalWrite(LED_BUILTIN, HIGH);
     delay(100);                  
     digitalWrite(LED_BUILTIN, LOW);    
