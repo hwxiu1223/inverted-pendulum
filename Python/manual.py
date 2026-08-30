@@ -16,16 +16,13 @@ time.sleep(2) # Wait for Arduino to reset
 saved_enc_count = 0
 butt_pressed = False
 
-<<<<<<< HEAD
 enc_count_file = os.path.join(os.path.dirname(__file__), "enc_counts.txt")
-=======
 locked = True;
 
 # Track last printed encoder values so we only print on change
 last_mag_val = None
 last_rotary_val = None
 last_speed_val = 0
->>>>>>> 9123ce5626b55fe7c047e555c700f4617b09805c
 
 def set_motor(speed):
     # Sends: M,150\n, between -255 and 255
