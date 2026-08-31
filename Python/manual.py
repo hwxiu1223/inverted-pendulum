@@ -5,18 +5,33 @@ import math
 import keyboard
 import constants
 from config import COM_PORT
-from datetime import datetime
 
 AS5600_RAW_TO_RADIANS, AS5600_RAW_TO_DEGREES = constants.AS5600_RAW_TO_RADIANS, constants.AS5600_RAW_TO_DEGREES
+
+enc_count_file = os.path.join(os.path.dirname(__file__), "enc_counts.txt")
+
+def load_enc_val():
+    try:
+        with open(enc_count_file, "r") as file:
+            line = file.readline().strip()
+
+        count = int(line.split(":")[1].strip())
+        return count
+
+    except (FileNotFoundError, IndexError, ValueError):
+        "no prev value or error message"
+        return 0
 
 ser = serial.Serial(COM_PORT, 115200, timeout=1)
 time.sleep(2) # Wait for Arduino to reset
 
-saved_enc_count = 0
-butt_pressed = False
+saved_enc_count = load_enc_val()
+print("Loaded saved encoder count:", saved_enc_count)
+ser.write(f"SET,{saved_enc_count}\n".encode())
 
-enc_count_file = os.path.join(os.path.dirname(__file__), "enc_counts.txt")
-locked = True;
+
+butt_pressed = False
+locked = True
 
 # Track last printed encoder values so we only print on change
 last_mag_val = None
@@ -72,14 +87,17 @@ def save_enc_val():
 
     if rot_val is not None:
         print("Saved enc count: ", count)
-        dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        #dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        with open(enc_count_file, "a") as file:
-            file.write(f"{dt}, {rot_val}\n")
+        with open(enc_count_file, "w") as file: #changed it so it overwrites the previous counts
+            file.write( f"enc_count: {rot_val}\n") 
 
         return rot_val
+    
     return None
 
+
+    
 while(1):
     if keyboard.is_pressed('right'):
         run_step(-255)
@@ -96,7 +114,7 @@ while(1):
             locked = True
             print("!! Cart Locked !!")
         time.sleep(0.10)
-## saving the last encoder count
+#saving the last encoder count
     if keyboard.is_pressed('s'):
         if not butt_pressed:
             saved_enc_count = save_enc_val()

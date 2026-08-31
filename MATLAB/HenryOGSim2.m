@@ -1,6 +1,6 @@
   
 clc; clear; close all;
-params = OGpendsys();
+params = pendsys();
     g = params.g;
     L = params.L; % length of the pendulum
     m = params.m;
