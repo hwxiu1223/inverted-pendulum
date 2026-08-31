@@ -3,12 +3,11 @@ import serial
 import time
 import math
 import keyboard
+import constants
 from config import COM_PORT
 from datetime import datetime
 
-#### CONSTANTS ####
-AS5600_RAW_TO_RADIANS = (math.pi * 2.0) / 4096
-AS5600_RAW_TO_DEGREES = 360.0 / 4096
+AS5600_RAW_TO_RADIANS, AS5600_RAW_TO_DEGREES = constants.AS5600_RAW_TO_RADIANS, constants.AS5600_RAW_TO_DEGREES
 
 ser = serial.Serial(COM_PORT, 115200, timeout=1)
 time.sleep(2) # Wait for Arduino to reset
