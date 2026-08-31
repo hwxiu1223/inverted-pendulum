@@ -14,6 +14,22 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
+  if (Serial.available() > 0) {
+    String count_line = Serial.readStringUntil('\n');
+    count_line.trim(); //removes whitespace
+
+    if (count_line.startsWith("SET,")){
+      long saved_count = count_line.substring(4).toInt();
+      noInterrupts();
+      enc_count = saved_count;
+      interrupts();
+      Serial.print("Encoder count set to: ");
+      Serial.println(enc_count);
+
+    }
+  }
+
+
   static long prev_count = 0;
 
   if (prev_count != enc_count){
