@@ -84,7 +84,7 @@ void setup() {
     digitalWrite(LED_BUILTIN, HIGH);
     delay(100);                  
     digitalWrite(LED_BUILTIN, LOW);  
-    delay(900);
+    delay(400);
 
     if (Serial.available() > 0) {
       String message = Serial.readStringUntil('\n');
