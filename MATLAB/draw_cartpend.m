@@ -18,9 +18,9 @@ function draw_cartpend(t_hist, y_hist, params)
 
     % Positions for the cart
     y = wr/2 + H/2; 
-    w1x = x - .9*W/2;
+    w1x = x - W/2;
     w1y = 0;
-    w2x = x + .9*W/2 - wr;
+    w2x = x + W/2 - wr;
     w2y = 0;
     px = x + L*sin(th);
     py = y - L*cos(th);
@@ -28,9 +28,8 @@ function draw_cartpend(t_hist, y_hist, params)
     % Ensure figure background is black
     set(gcf, 'Color', 'k', 'InvertHardcopy', 'off');
 
-    % ==========================================
-    % Subplot 1: The Cart Animation
-    % ==========================================
+    % Cart Animation
+
     subplot(2, 1, 1);
     hold off; % Clear previous frame
     
@@ -46,8 +45,9 @@ function draw_cartpend(t_hist, y_hist, params)
     rectangle('Position', [px-mr/2, py-mr/2, mr, mr], 'Curvature', 1, 'FaceColor', [.3 0.3 1], 'EdgeColor', [1 1 1]);
     
     % Formatting
-    xlim([-5.1 5.1]);
-    ylim([-.2 .2]);
+    xlim([-0.6 0.6]);
+    ylim([-.3 .3]);
+    axis equal
     set(gca, 'Color', 'k', 'XColor', 'w', 'YColor', 'w');
     title('Cart-Pendulum Animation', 'Color', 'w');
 

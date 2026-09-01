@@ -6,41 +6,76 @@ function dy = hybrid_controller(t, y, params, K)
     dtheta = y(4);
     
     % Wrap theta between -pi and pi
-    theta_wrapped = mod(theta + pi, 2*pi) - pi;
+    theta_wrapped = mod(theta - pi + pi, 2*pi) - pi;
     
-    % --- 1. LQR CATCH & BALANCE ---
-    if abs(theta - pi) < 0.6
-        u = -K * (y - [y(1); 0; pi; 0]); 
+    % 1. LQR CATCH & BALANCE
+    if abs(theta_wrapped) < 0.6
+        theta_target = theta - theta_wrapped;
+        u = -K * (y - [y(1); 0; theta_target; 0]); 
 
-   % --- 2. ENERGY SWING-UP ---
+   % 2. ENERGY SWING-UP
     else
-        % Detect if we are stuck at the bottom
-        if t < 1
-            % STRONGER KICK for a 5kg cart
-            u = -7; % 5kg cart, need to lower maybe. See ai
+        % Pure time-gated kick (not state-gated -- see chat notes: gating on
+        % dtheta cuts the kick off within a fraction of a millisecond because
+        % dtheta responds almost instantly to u near theta=0).
+        if t < 0.2
+            u = -params.u_max;
             
         else
-            % NORMAL SWING-UP: Use absolute value of gravity for energy math
+            % Normal Swing-up: Use absolute value of gravity for energy math
             g_mag = abs(params.g);
-            
             E = 0.5 * params.m * params.L^2 * dtheta^2 - params.m * g_mag * params.L * cos(theta);
             E_target = params.m * g_mag * params.L;
             
-            % INCREASED ENERGY GAIN
-            ke = .8; 
+            % Energy gain
+            ke = 30.0; 
             
             % Swing-up law
             u = ke * (E - E_target) * dtheta * cos(theta) - 0.2 * dx;
-            if t < 2
-                disp(dtheta);
-            end
 
         end
-        
-        % INCREASED MOTOR SATURATION (Allow up to 150 Newtons)
-        u = max(min(u, 20), -20); 
     end
+
+    % --- Real motor force ceiling with torque-speed droop ---
+    % A DC motor's available torque falls roughly linearly from its rated
+    % value (at zero speed) to zero as it approaches its rated RPM/v_max.
+    % This caps |u| accordingly instead of assuming full force is always
+    % available, which is not physically realistic at high cart speed.
+    if dx ~= 0 && sign(u) == sign(dx)
+    % Commanding force that reinforces current motion -> droop applies
+        u_max_eff = params.u_max * max(0, 1 - abs(dx)/params.v_max);
+    else
+    % Commanding braking/reversal -> full torque available
+        u_max_eff = params.u_max;
+end
+u = max(min(u, u_max_eff), -u_max_eff);
+
+    % --- Soft track-limit repulsion (virtual wall near rail ends) ---
+    u_wall = track_limit_force(x, dx, params);
+    u = u + u_wall;
+
+    % Final hard clamp: never command more than the motor's absolute max,
+    % even after adding the wall force.
+    u = max(min(u, params.u_max), -params.u_max);
     
     % Pass the computed force into your existing dynamics function
     dy = cartpend(y, u, params);
+end
+
+function u_wall = track_limit_force(x, dx, params)
+    % Soft virtual wall: as the cart's BODY EDGE (not just its centerline)
+    % nears either end of the physical rail (params.x_min/x_max), ramp in a
+    % spring-damper restoring force so the cart decelerates and reverses
+    % before the body actually reaches the hard end of travel.
+    u_wall = 0;
+    margin = params.x_margin;
+    half_W = params.W/2;   % account for cart body thickness, not just center x
+
+    if (x + half_W) > (params.x_max - margin)
+        penetration = (x + half_W) - (params.x_max - margin);
+        u_wall = -params.k_wall*penetration - params.c_wall*max(dx, 0);
+    elseif (x - half_W) < (params.x_min + margin)
+        penetration = (x - half_W) - (params.x_min + margin);
+        u_wall = -params.k_wall*penetration - params.c_wall*min(dx, 0);
+    end
 end
