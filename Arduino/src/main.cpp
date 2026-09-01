@@ -45,20 +45,31 @@ const uint8_t L_EN = 10;
 const uint8_t R_EN = 9;
 
 volatile long enc_count = 0;
+volatile uint8_t enc_prevState = 0;
 
+// index = (prevState<<2)|newState, each state is (A<<1)|B
+// 0 = invalid/no-motion transition, +1/-1 = valid step
+static const int8_t QEM[16] = {
+   0, -1,  1,  0,
+   1,  0,  0, -1,
+  -1,  0,  0,  1,
+   0,  1, -1,  0
+};
+
+void encoderISR() {
+  digitalWrite(LED_BUILTIN, HIGH);
+  uint8_t a = digitalRead(PIN_A);
+  uint8_t b = digitalRead(PIN_B);
+  uint8_t newState = (a << 1) | b;
+  uint8_t index = (enc_prevState << 2) | newState;
+  enc_count += QEM[index];
+  enc_prevState = newState;
+  digitalWrite(LED_BUILTIN, LOW);    
+}
 
 // Library Objects
 BTS7960 motorDriver(L_EN, R_EN, L_PWM, R_PWM);
 AS5600 magneticEncoder;
-
-void interrupt(){
-  if (digitalRead(PIN_A) == digitalRead(PIN_B)) {  
-    enc_count++;
-  }
-  else  {
-    enc_count--;
-  }
-}
 
 void setup() {
   Serial.begin(115200);
@@ -70,7 +81,8 @@ void setup() {
   pinMode(PIN_A, INPUT_PULLUP);
   pinMode(PIN_B, INPUT_PULLUP);
   
-  attachInterrupt(digitalPinToInterrupt(PIN_A), interrupt, CHANGE); //triggers whenever A changes
+attachInterrupt(digitalPinToInterrupt(PIN_A), encoderISR, CHANGE);
+attachInterrupt(digitalPinToInterrupt(PIN_B), encoderISR, CHANGE);
 
   while (!magneticEncoder.isConnected()) {
     digitalWrite(LED_BUILTIN, HIGH);
