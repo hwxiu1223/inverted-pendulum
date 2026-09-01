@@ -1,157 +1,46 @@
 import os
-import serial
 import time
-import math
 import keyboard
-import constants
+import serial
 from config import COM_PORT
-
-AS5600_RAW_TO_RADIANS, AS5600_RAW_TO_DEGREES = constants.AS5600_RAW_TO_RADIANS, constants.AS5600_RAW_TO_DEGREES
+from cart_control import CartControl
 
 enc_count_file = os.path.join(os.path.dirname(__file__), "enc_counts.txt")
 
-def load_enc_val():
-    try:
-        with open(enc_count_file, "r") as file:
-            line = file.readline().strip()
-
-        count = int(line.split(":")[1].strip())
-        return count
-
-    except (FileNotFoundError, IndexError, ValueError):
-        "no prev value or error message"
-        return 0
-
 ser = serial.Serial(COM_PORT, 115200, timeout=1)
+cart = CartControl(ser, enc_count_file)
+# cart.handshake()
+# print("Loaded saved encoder count:", cart.saved_enc_count)
 
-saved_enc_count = load_enc_val()
-print("Loaded saved encoder count:", saved_enc_count)
+key_state = {}
+
+def key_just_pressed(key):
+    is_down = keyboard.is_pressed(key)
+    was_down = key_state.get(key, False)
+    key_state[key] = is_down
+    return is_down and not was_down
 
 while True:
-    response = ser.readline().decode('utf-8').strip()
-    if response == 'REQ':
-        print("Arduino request received")
-        ser.write(f"RET,{saved_enc_count}\n".encode())
-        print("Sending: ", f"RET, {saved_enc_count}")
-        break
-
-butt_pressed = False
-center_butt_pressed = False
-locked = True
-
-# Track last printed encoder values so we only print on change
-last_mag_val = None
-last_rotary_val = None
-last_speed_val = 0
-
-def set_motor(speed):
-    # Sends: M,150\n, between -255 and 255
-    command = f"M,{speed}\n"
-    ser.write(command.encode('utf-8'))
-
-def read_encoders():
-    # Request data
-    ser.write(b"R\n")
-    
-    # Read the response: e.g., b'E,4095,1024\n'
-    line = ser.readline().decode('utf-8').strip()
-    
-    if line.startswith("E"):
-        parts = line.split(',')
-        mag_val = int(parts[1])
-        rotary_val = int(parts[2])
-        return mag_val, rotary_val
-    return None, None
-
-def run_step(speed):
-    global last_mag_val, last_rotary_val, last_speed_val
-
-    mag_val, rotary_val = read_encoders()
-
-    if mag_val is not None and rotary_val is not None:
-        if mag_val != last_mag_val or rotary_val != last_rotary_val:
-            print("MAG: raw-", mag_val, " rad-", mag_val * AS5600_RAW_TO_RADIANS, " deg-", mag_val * AS5600_RAW_TO_DEGREES, ", ROTARY: ", rotary_val)
-            last_mag_val = mag_val
-            last_rotary_val = rotary_val
-
-    time.sleep(0.01)
-    if locked and ((speed < 0 and rotary_val < 500) or (speed > 0 and rotary_val > 29500)):
-        speed = 0
-
-    set_motor(speed)
-
-    if (speed != last_speed_val):
-        print(f"Set motor: ", speed)
-        
-    last_speed_val = speed
-
-
-def save_enc_val():
-    global saved_enc_count
-    mag_val, rot_val = read_encoders()
-    count = rot_val
-
-    if rot_val is not None:
-        print("Saved enc count: ", count)
-        #dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-        with open(enc_count_file, "w") as file: #changed it so it overwrites the previous counts
-            file.write( f"enc_count: {rot_val}\n") 
-
-        return rot_val
-    
-    return None
-
-def center_cart():
-    print("Centering...")
-    while True:
-        mag_val, rot_val = read_encoders()
-        if rot_val is None:
-            set_motor(0)
-            continue
-
-        if abs(rot_val) <= 10:
-            set_motor(0)
-            print("Cart is centered.")
-            break
-
-        if rot_val > 0:
-            set_motor(-100)
-
-        else:
-            set_motor(100)
-
-        time.sleep(0.01)
-
-
-    
-while(1):
     if keyboard.is_pressed('right'):
-        run_step(-255)
+        cart.run_step(-255)
     elif keyboard.is_pressed('left'):
-        run_step(255)
+        cart.run_step(255)
     else:
-        run_step(0)
+        cart.run_step(0)
 
-    if keyboard.is_pressed('u'):
-        if locked:  
-            locked = False
-            print("!! Cart Unlocked !!")
-        else:
-            locked = True
-            print("!! Cart Locked !!")
-        time.sleep(0.10)
-#saving the last encoder count
-    if keyboard.is_pressed('s'):
-        if not butt_pressed:
-            saved_enc_count = save_enc_val()
-            butt_pressed = True
-    else:
-            butt_pressed = False
+    if key_just_pressed('u'):
+        cart.locked = not cart.locked
+        print("!! Cart Unlocked !!" if not cart.locked else "!! Cart Locked !!")
 
-    if keyboard.is_pressed('c'):
-        if not center_butt_pressed:
-            center_cart()
-            center_butt_pressed = True
-        else:
-            center_butt_pressed = False 
+    if key_just_pressed('s'):
+        cart.save_enc_val()
+
+    if key_just_pressed('m'):
+        cart.center_cart()
+
+    if key_just_pressed('space'):
+        cart.set_motor(0)
+        print("Cart stopped, saving encoder count...")
+        time.sleep(1)
+        saved = cart.save_enc_val()
+        print("Stopped and saved encoder count:", saved)
