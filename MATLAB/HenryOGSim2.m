@@ -16,12 +16,12 @@ params = pendsys();
     Q_r = [1 0 0;
            0 10 0;
            0 0 100];
-    R = 0.01;
+    R = 0.001;
     K3 = lqr(A_r, B_r, Q_r, R);
     K = [0, K3];
 
-    tspan = 0:0.1:10;
-    y0 = [0; 0; 0; 0]; 
+    tspan = 0:0.1:15;
+    y0 = [0; 0; pi-0.1; 0]; 
     
     [t,y] = ode45(@(t,y) hybrid_controller(t, y, params, K), tspan, y0);
     

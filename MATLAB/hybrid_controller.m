@@ -8,32 +8,22 @@ function dy = hybrid_controller(t, y, params, K)
     % Wrap theta between -pi and pi
     theta_wrapped = mod(theta - pi + pi, 2*pi) - pi;
     
-    % 1. LQR CATCH & BALANCE
+    % LQR Controller
     if abs(theta_wrapped) < 0.6
         theta_target = theta - theta_wrapped;
         u = -K * (y - [y(1); 0; theta_target; 0]); 
 
-   % 2. ENERGY SWING-UP
+    % Swing-up Controller
     else
-        % Pure time-gated kick (not state-gated -- see chat notes: gating on
-        % dtheta cuts the kick off within a fraction of a millisecond because
-        % dtheta responds almost instantly to u near theta=0).
-        if t < 0.2
-            u = -params.u_max;
-            
-        else
-            % Normal Swing-up: Use absolute value of gravity for energy math
             g_mag = abs(params.g);
             E = 0.5 * params.m * params.L^2 * dtheta^2 - params.m * g_mag * params.L * cos(theta);
             E_target = params.m * g_mag * params.L;
             
             % Energy gain
-            ke = 30.0; 
+            ke = 20.0; 
             
             % Swing-up law
-            u = ke * (E - E_target) * dtheta * cos(theta) - 0.2 * dx;
-
-        end
+            u = ke * (E - E_target) * dtheta * cos(theta);
     end
 
     % --- Real motor force ceiling with torque-speed droop ---
