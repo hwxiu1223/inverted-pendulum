@@ -45,15 +45,13 @@ function draw_cartpend(t_hist, y_hist, params)
     rectangle('Position', [px-mr/2, py-mr/2, mr, mr], 'Curvature', 1, 'FaceColor', [.3 0.3 1], 'EdgeColor', [1 1 1]);
     
     % Formatting
-    xlim([-0.6 0.6]);
-    ylim([-.3 .3]);
+    xlim([-0.5 0.5]);
+    ylim([-.2 .2]);
     axis equal
     set(gca, 'Color', 'k', 'XColor', 'w', 'YColor', 'w');
     title('Cart-Pendulum Animation', 'Color', 'w');
 
-    % ==========================================
-    % Subplot 2: Live State Tracking
-    % ==========================================
+    % Subplot 2: State Tracking
     subplot(2, 1, 2);
     hold off;
     
@@ -69,7 +67,7 @@ function draw_cartpend(t_hist, y_hist, params)
 
     % Dynamic x-axis that grows with time, fixed y-axis
     xlim([0, max(10, t_hist(end))]); 
-    ylim([-10 10]); % Adjust bounds based on your expected swing range
+    ylim([-10 10]);
     
     % Formatting to match the black theme
     set(gca, 'Color', 'k', 'XColor', 'w', 'YColor', 'w', 'GridColor', [0.3 0.3 0.3]);
