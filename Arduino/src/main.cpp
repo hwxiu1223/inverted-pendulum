@@ -37,10 +37,12 @@ Pins Setup:
 #include "AS5600.h"
 
 ////// PIN ASSIGNMENTS //////
+const uint8_t PIN_A = 1; 
+const uint8_t PIN_B = 2;
+const uint8_t L_EN = 3;
+const uint8_t R_EN = 4;
 const uint8_t R_PWM = 5; // Arduino PWM output pin 5; connect to IBT-2 pin 1 (RPWM)
 const uint8_t L_PWM = 6; // Arduino PWM output pin 6; connect to IBT-2 pin 2 (LPWM)
-const uint8_t PIN_A = 1;
-const uint8_t PIN_B = 2;
 
 volatile long enc_count = 0;
 
