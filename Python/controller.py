@@ -42,25 +42,25 @@ def hybrid_controller(t, y, K):
         u = -K @ (y - target)
     else:
         if abs(theta_wrapped) < 0.05 and abs(dtheta) < 0.05:
-            u = 50
+            u = 6
         else:
             g_mag = abs(g)
             E = 0.5 * m * L**2 * dtheta**2 - m * g_mag * L * np.cos(theta)
             E_target = m * g_mag * L
-            ke = 4.0
+            ke = 0.4
             u = ke * (E - E_target) * dtheta * np.cos(theta) - 0.2 * dx
 
-        u = max(min(u, 150), -150)
+        u = max(min(u, 20), -20)
 
     dy = cartpend(y, u)
-    return dy
+    return dy, u
 
 
 tspan = np.arange(0, 30.5, 0.5)
 y0 = [0, 0, 0, 0]
 
 sol = solve_ivp(
-    lambda t, y: hybrid_controller(t, y, K),
+    lambda t, y: hybrid_controller(t, y, K)[0],  # only dy goes to the solver
     [tspan[0], tspan[-1]],
     y0,
     t_eval=tspan
