@@ -21,7 +21,7 @@ R = 0.001;
 K3 = lqr(A_r, B_r, Q_r, R);
 K = [0, K3];
 
-tspan = 0:0.5:30;
+tspan = 0:0.1:10;
 y0 = [0; 0; 0; 0]; 
 [t,y] = ode45(@(t,y) hybrid_controller(t, y, params, K), tspan, y0);
 figure('Name', 'Inverted Pendulum Simulation', 'Position', [100, 100, 800, 600]);

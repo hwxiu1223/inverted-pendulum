@@ -1,5 +1,5 @@
 clc; clear; close all;
-params = pendsys();
+params = OGpendsys();
 g = params.g; L = params.L; m = params.m; M = params.M; d = params.d;
 
 A = [0 1 0 0;

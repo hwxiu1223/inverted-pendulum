@@ -11,13 +11,13 @@ function dy = hybrid_controller(t, y, params, K)
     % --- 1. LQR CATCH & BALANCE ---
     if abs(theta - pi) < 0.6
         u = -K * (y - [y(1); 0; pi; 0]); 
-        
+
    % --- 2. ENERGY SWING-UP ---
     else
         % Detect if we are stuck at the bottom
-        if abs(theta_wrapped) < 0.05 && abs(dtheta) < 0.05
+        if t < 1
             % STRONGER KICK for a 5kg cart
-            u = 50; % 5kg cart, need to lower maybe. See ai
+            u = -7; % 5kg cart, need to lower maybe. See ai
             
         else
             % NORMAL SWING-UP: Use absolute value of gravity for energy math
@@ -27,14 +27,18 @@ function dy = hybrid_controller(t, y, params, K)
             E_target = params.m * g_mag * params.L;
             
             % INCREASED ENERGY GAIN
-            ke = 4.0; 
+            ke = .8; 
             
             % Swing-up law
             u = ke * (E - E_target) * dtheta * cos(theta) - 0.2 * dx;
+            if t < 2
+                disp(dtheta);
+            end
+
         end
         
         % INCREASED MOTOR SATURATION (Allow up to 150 Newtons)
-        u = max(min(u, 150), -150); 
+        u = max(min(u, 20), -20); 
     end
     
     % Pass the computed force into your existing dynamics function

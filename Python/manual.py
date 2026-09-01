@@ -23,14 +23,20 @@ def load_enc_val():
         return 0
 
 ser = serial.Serial(COM_PORT, 115200, timeout=1)
-time.sleep(2) # Wait for Arduino to reset
 
 saved_enc_count = load_enc_val()
 print("Loaded saved encoder count:", saved_enc_count)
-ser.write(f"SET,{saved_enc_count}\n".encode())
 
+while True:
+    response = ser.readline().decode('utf-8').strip()
+    if response == 'REQ':
+        print("Arduino request received")
+        ser.write(f"RET,{saved_enc_count}\n".encode())
+        print("Sending: ", f"RET, {saved_enc_count}")
+        break
 
 butt_pressed = False
+center_butt_pressed = False
 locked = True
 
 # Track last printed encoder values so we only print on change
@@ -96,6 +102,27 @@ def save_enc_val():
     
     return None
 
+def center_cart():
+    print("Centering...")
+    while True:
+        mag_val, rot_val = read_encoders()
+        if rot_val is None:
+            set_motor(0)
+            continue
+
+        if abs(rot_val) <= 10:
+            set_motor(0)
+            print("Cart is centered.")
+            break
+
+        if rot_val > 0:
+            set_motor(-100)
+
+        else:
+            set_motor(100)
+
+        time.sleep(0.01)
+
 
     
 while(1):
@@ -120,4 +147,11 @@ while(1):
             saved_enc_count = save_enc_val()
             butt_pressed = True
     else:
-        butt_pressed = False
+            butt_pressed = False
+
+    if keyboard.is_pressed('c'):
+        if not center_butt_pressed:
+            center_cart()
+            center_butt_pressed = True
+        else:
+            center_butt_pressed = False 

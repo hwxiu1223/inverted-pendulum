@@ -46,8 +46,8 @@ function draw_cartpend(t_hist, y_hist, params)
     rectangle('Position', [px-mr/2, py-mr/2, mr, mr], 'Curvature', 1, 'FaceColor', [.3 0.3 1], 'EdgeColor', [1 1 1]);
     
     % Formatting
-    xlim([-30 30]);
-    ylim([-2.5 2.8]);
+    xlim([-5.1 5.1]);
+    ylim([-.2 .2]);
     set(gca, 'Color', 'k', 'XColor', 'w', 'YColor', 'w');
     title('Cart-Pendulum Animation', 'Color', 'w');
 
