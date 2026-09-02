@@ -12,13 +12,13 @@ function dy = hybrid_controller(t, y, params, K)
     if abs(theta_wrapped) > (pi - 0.5)
         theta_target = sign(theta_wrapped) * pi;
         theta_target_global = theta - theta_wrapped + theta_target;
-        u = -K * (y - [y(1); 0; theta_target_global; 0]); 
+        u = -K * (y - [0; 0; theta_target_global; 0]); 
     else
     
     % Swing-up Controller
     
     % Initial Kick
-        if abs(theta_wrapped) < 0.1 && abs(dtheta) < 0.1
+        if abs(theta_wrapped) < 0.05 && abs(dtheta) < 0.1
             u = params.u_max;
 
     % Swing-up Law
@@ -26,19 +26,10 @@ function dy = hybrid_controller(t, y, params, K)
             g_mag = abs(params.g);
             E = 0.5 * params.m * params.L^2 * dtheta^2 - params.m * g_mag * params.L * cos(theta);
             E_target = params.m * g_mag * params.L;
-            ke = 2.0; 
+            ke = 2.4; 
             u = ke * (E - E_target) * dtheta * cos(theta);
         end
     end
-    % Motor force ceiling
-    if dx ~= 0 && sign(u) == sign(dx)
-    % Commanding force that reinforces current motion -> droop applies
-        u_max_eff = params.u_max * max(0, 1 - abs(dx)/params.v_max);
-    else
-    % Commanding braking/reversal -> full torque available
-        u_max_eff = params.u_max;
-    end
-u = max(min(u, u_max_eff), -u_max_eff);
 
     % --- Soft track-limit repulsion (virtual wall near rail ends) ---
     u_wall = track_limit_force(x, dx, params);
@@ -59,13 +50,12 @@ function u_wall = track_limit_force(x, dx, params)
     % before the body actually reaches the hard end of travel.
     u_wall = 0;
     margin = params.x_margin;
-    half_W = params.W/2;   % account for cart body thickness, not just center x
 
-    if (x + half_W) > (params.x_max - margin)
-        penetration = (x + half_W) - (params.x_max - margin);
+    if (x) > (params.x_max - margin)
+        penetration = (x) - (params.x_max - margin);
         u_wall = -params.k_wall*penetration - params.c_wall*max(dx, 0);
-    elseif (x - half_W) < (params.x_min + margin)
-        penetration = (x - half_W) - (params.x_min + margin);
+    elseif (x) < (params.x_min + margin)
+        penetration = (x) - (params.x_min + margin);
         u_wall = -params.k_wall*penetration - params.c_wall*min(dx, 0);
     end
 end
