@@ -8,20 +8,21 @@ params = pendsys();
     b = params.b;
 
     % Reduced-order LQR design
-    A_r = [-d/M,        -m*g/M,          -b/(M*L);
-            0,            0,               1;
-           -d/(M*L),  -(M+m)*g/(M*L),  -(M+m)*b/(m*M*L^2)];
-    B_r = [1/M; 0; 1/(M*L)];
+    A = [0 1 0 0;
+        0 -d/M -m*g/M -b/(M*L);
+        0 0 0 1;
+        0 -d/(M*L) -(M+m)*g/(M*L) -(M+m)*b/(m*M*L^2)];
+    B = [0; 1/M; 0; 1/(M*L)];
 
-    Q_r = [1 0 0;
-           0 10 0;
-           0 0 100];
-    R = 0.001;
-    K3 = lqr(A_r, B_r, Q_r, R);
-    K = [0, K3];
+    Q = [100 0 0 0;
+        0 0 0 0;
+        0 0 1000 0;
+        0 0 0 0];
+    R = 0.01;
+    K = lqr(A, B, Q, R);
 
-    tspan = 0:0.1:15;
-    y0 = [0; 0; pi-0.1; 0]; 
+    tspan = 0:0.1:30;
+    y0 = [0; 0; 0; 0]; 
     
     [t,y] = ode45(@(t,y) hybrid_controller(t, y, params, K), tspan, y0);
 
