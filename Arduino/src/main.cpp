@@ -81,8 +81,8 @@ void setup() {
   pinMode(PIN_A, INPUT_PULLUP);
   pinMode(PIN_B, INPUT_PULLUP);
   
-attachInterrupt(digitalPinToInterrupt(PIN_A), encoderISR, CHANGE);
-attachInterrupt(digitalPinToInterrupt(PIN_B), encoderISR, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(PIN_A), encoderISR, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(PIN_B), encoderISR, CHANGE);
 
   while (!magneticEncoder.isConnected()) {
     digitalWrite(LED_BUILTIN, HIGH);
@@ -137,7 +137,7 @@ void loop() {
         motorDriver.TurnLeft(speed);
       }
     }
-    
+
     // Parse Request for Data (e.g., "R")
     else if (message == "R") {
       int magAngle = magneticEncoder.readAngle();
@@ -147,6 +147,12 @@ void loop() {
       Serial.print(magAngle);
       Serial.print(",");
       Serial.println(enc_count);
+    }
+
+    // Reset arduino
+    else if (message == "ST") {
+      enc_count = 0;
+      NVIC_SystemReset();
     }
   }          
 }

@@ -17,7 +17,6 @@ class CartControl:
       if not os.path.exists(self.enc_count_file):
           with open(self.enc_count_file, "w") as file:
               file.write("enc_count: 0\n")
-      self.saved_enc_count = self.load_enc_val()
 
     def load_enc_val(self):
         try:
@@ -29,13 +28,17 @@ class CartControl:
             return 0
 
     def handshake(self):
+        print("Initiating Handshake")
+        saved_enc_count = self.load_enc_val()
         while True:
             response = self.ser.readline().decode('utf-8').strip()
             if response == 'REQ':
                 print("Arduino request received")
-                self.ser.write(f"RET,{self.saved_enc_count}\n".encode())
-                print("Sending: ", f"RET, {self.saved_enc_count}")
+                self.ser.write(f"RET,{saved_enc_count}\n".encode())
+                print("Sending: ", f"RET, {saved_enc_count}")
                 break
+            time.sleep(0.1)
+        return saved_enc_count
 
     def set_motor(self, speed):
         self.ser.write(f"M,{speed}\n".encode('utf-8'))
@@ -52,14 +55,13 @@ class CartControl:
         mag_val, rotary_val = self.read_encoders()
 
         if mag_val is not None and rotary_val is not None:
-            if mag_val != self.last_mag_val or rotary_val != self.last_rotary_val:
-                print("MAG: raw-", mag_val, " rad-", mag_val * AS5600_RAW_TO_RADIANS,
-                      " deg-", mag_val * AS5600_RAW_TO_DEGREES, ", ROTARY: ", rotary_val)
-                self.last_mag_val = mag_val
-                self.last_rotary_val = rotary_val
+            print("MAG: raw-", mag_val, " rad-", mag_val * AS5600_RAW_TO_RADIANS,
+                  " deg-", mag_val * AS5600_RAW_TO_DEGREES, ", ROTARY: ", rotary_val)
+            self.last_mag_val = mag_val
+            self.last_rotary_val = rotary_val
 
         time.sleep(0.01)
-        if self.locked and ((speed > 0 and rotary_val < 1000) or (speed < 0 and rotary_val > 59000)):
+        if self.locked and ((speed > 0 and rotary_val < 3000) or (speed < 0 and rotary_val > 57000)):
             speed = 0
 
         self.set_motor(speed)
@@ -73,23 +75,46 @@ class CartControl:
             print("Saved enc count: ", rot_val)
             with open(self.enc_count_file, "w") as file:
                 file.write(f"enc_count: {rot_val}\n")
-            self.saved_enc_count = rot_val
             return rot_val
         return None
 
+    def reset_enc_val(self):
+        print("Reset enc count.")
+        with open(self.enc_count_file, "w") as file:
+            file.write(f"enc_count: {0}\n")
+
+        self.reset_arduino()
+        time.sleep(0.5)
+        self.handshake()
+    
+        return None
+
+    def reset_arduino(self):
+        self.ser.write(f"ST\n".encode('utf-8'))
+
     def center_cart(self):
         print("Centering...")
+
         while True:
             _, rot_val = self.read_encoders()
             if rot_val is None:
-                self.set_motor(0)
-                continue
+                print("Unable to read rotary encoder.")
+                return None
 
             error = rot_val - 30000
-            if abs(error) <= 100:
-                self.set_motor(0)
-                print("Cart is centered.")
+            if abs(error) <= 10:
                 break
 
-            self.set_motor(100 if error > 0 else -100)
+            if abs(error) > 2000:
+                speed = 255 if error > 0 else -255
+            else:
+                speed = (255 / 2000) * error
+                if abs(speed) < 40:
+                    speed = 40 if speed > 0 else -40
+
+            self.set_motor(speed)
             time.sleep(0.01)
+
+        self.set_motor(0)
+        print("Cart is centered.")
+        return None

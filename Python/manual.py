@@ -10,8 +10,8 @@ enc_count_file = os.path.join(os.path.dirname(__file__), "enc_counts.txt")
 
 ser = serial.Serial(COM_PORT, 115200, timeout=1)
 cart = CartControl(ser, enc_count_file)
-cart.handshake()
-print("Loaded saved encoder count:", cart.saved_enc_count)
+enc_count = cart.handshake()
+print("Loaded saved encoder count:", enc_count)
 
 key_state = {}
 
@@ -39,10 +39,19 @@ while True:
     if key_just_pressed('m'):
         cart.center_cart()
 
+    if key_just_pressed('r'):
+        cart.set_motor(0)
+        cart.reset_enc_val()
+
     if key_just_pressed('space'):
         cart.set_motor(0)
         print("Cart stopped, saving encoder count...")
         time.sleep(1)
         saved = cart.save_enc_val()
         print("Stopped and saved encoder count:", saved)
+
+        cart.reset_arduino()
+        time.sleep(1)
+
         sys.exit()
+        break
