@@ -14,28 +14,22 @@ function dy = hybrid_controller(t, y, params, K)
         u = -K * (y - [y(1); 0; theta_target; 0]); 
     else
     
-
-        if t < 0.2
+    % Swing-up Controller
+    
+    % Initial Kick
+        if abs(theta_wrapped) 
             u = params.u_max;
 
-    % Swing-up Controller
+    % Swing-up Law
         else
             g_mag = abs(params.g);
             E = 0.5 * params.m * params.L^2 * dtheta^2 - params.m * g_mag * params.L * cos(theta);
             E_target = params.m * g_mag * params.L;
-            
-            % Energy gain
-            ke = 20.0; 
-            
-            % Swing-up law
+            ke = 1.0; 
             u = ke * (E - E_target) * dtheta * cos(theta);
         end
     end
-    % --- Real motor force ceiling with torque-speed droop ---
-    % A DC motor's available torque falls roughly linearly from its rated
-    % value (at zero speed) to zero as it approaches its rated RPM/v_max.
-    % This caps |u| accordingly instead of assuming full force is always
-    % available, which is not physically realistic at high cart speed.
+    % Motor force ceiling
     if dx ~= 0 && sign(u) == sign(dx)
     % Commanding force that reinforces current motion -> droop applies
         u_max_eff = params.u_max * max(0, 1 - abs(dx)/params.v_max);

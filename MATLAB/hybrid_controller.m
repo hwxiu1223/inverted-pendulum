@@ -6,18 +6,19 @@ function dy = hybrid_controller(t, y, params, K)
     dtheta = y(4);
     
     % Wrap theta between -pi and pi
-    theta_wrapped = mod(theta - pi + pi, 2*pi) - pi;
+    theta_wrapped = wrapToPi(theta);
     
     % LQR Controller
-    if abs(theta_wrapped) < 0.6
-        theta_target = theta - theta_wrapped;
-        u = -K * (y - [y(1); 0; theta_target; 0]); 
+    if abs(theta_wrapped) > (pi - 0.5)
+        theta_target = sign(theta_wrapped) * pi;
+        theta_target_global = theta - theta_wrapped + theta_target;
+        u = -K * (y - [y(1); 0; theta_target_global; 0]); 
     else
     
     % Swing-up Controller
     
     % Initial Kick
-        if t < 0.1
+        if abs(theta_wrapped) < 0.1 && abs(dtheta) < 0.1
             u = params.u_max;
 
     % Swing-up Law
@@ -25,7 +26,7 @@ function dy = hybrid_controller(t, y, params, K)
             g_mag = abs(params.g);
             E = 0.5 * params.m * params.L^2 * dtheta^2 - params.m * g_mag * params.L * cos(theta);
             E_target = params.m * g_mag * params.L;
-            ke = 5.0; 
+            ke = 2.0; 
             u = ke * (E - E_target) * dtheta * cos(theta);
         end
     end
