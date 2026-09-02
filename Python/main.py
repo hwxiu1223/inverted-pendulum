@@ -2,6 +2,7 @@ import os
 import time
 import keyboard
 import serial
+import sys
 from config import COM_PORT
 from cart_control import CartControl
 
@@ -47,3 +48,4 @@ while True:
         time.sleep(1)
         saved = cart.save_enc_val()
         print("Stopped and saved encoder count:", saved)
+        sys.exit()
