@@ -1,5 +1,5 @@
 function draw_cartpend(t_hist, y_hist, params)
-    % Extract the CURRENT state for the animation from the end of the history
+    % extract the state for the animation from the end of the history
     y_curr = y_hist(end, :);
     x = y_curr(1);
     dx = y_curr(2);
@@ -15,6 +15,11 @@ function draw_cartpend(t_hist, y_hist, params)
     H = params.H; 
     wr = params.wr; 
     mr = params.mr; 
+
+    % wall geometry
+    x_min = params.x_min;
+    x_max = params.x_max;
+    margin = params.x_margin;
 
     % Positions for the cart
     y = wr/2 + H/2; 
@@ -34,9 +39,19 @@ function draw_cartpend(t_hist, y_hist, params)
     hold off; % Clear previous frame
     
     % Draw ground
-    plot([-50 50], [0 0], 'w', 'LineWidth', 2);
+    plot([x_min-2.5 x_max+2.5], [0 0], 'w', 'LineWidth', 2);
     hold on;
     
+    % shaded soft-wall areas
+    patch([x_min x_min+margin x_min+margin x_min], [-0.2 -0.2 0.2 0.2], ...
+        [1 0.6 0], 'FaceAlpha', 0.15, 'EdgeColor', 'none');
+    patch([x_max-margin x_max x_max x_max-margin], [-0.2 -0.2 0.2 0.2], ...
+        [1 0.6 0], 'FaceAlpha', 0.15, 'EdgeColor', 'none');
+
+    % lined hard-walls
+    plot([x_min x_min], [-0.2 0.2], 'r', 'LineWidth', 3);
+    plot([x_max x_max], [-0.2 0.2], 'r', 'LineWidth', 3);
+
     % Draw cart, wheels, pendulum, and mass
     rectangle('Position', [x-W/2, y-H/2, W, H], 'Curvature', .1, 'FaceColor', [1 0.1 0.1], 'EdgeColor', [1 1 1]);
     rectangle('Position', [w1x, w1y, wr, wr], 'Curvature', 1, 'FaceColor', [1 1 1], 'EdgeColor', [1 1 1]);

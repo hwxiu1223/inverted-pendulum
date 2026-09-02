@@ -23,9 +23,22 @@ function params = pendsys(params)
     params.u_max = params.tau_rated / params.r_belt;               % rated continuous force ceiling (N) ~= 2.45 N
     params.v_max = (2*pi*params.rpm_max/60) * params.r_belt; % max cart speed at motor's rated RPM (m/s) ~= 0.628 m/s
     
-    params.x_min    = -0.5;   % left end of rail (m), cart position coordinate
-    params.x_max    =  0.5;   % right end of rail (m)
+    params.x_min    = -0.48;   % available space on rail to left (m)
+    params.x_max    =  0.48;   % available space on rail to right (m)
     params.x_margin =  0.08;  % distance from the end where the soft wall starts pushing back; accounts for cart W (m)
-    params.k_wall   =  100;   % soft-wall spring stiffness (N/m) -- tune so it decelerates cart before the true end
-    params.c_wall   =  30;    % soft-wall damping (N*s/m) -- kills residual velocity into the wall
+    params.k_wall   =  150;   % soft-wall spring stiffness (N/m) -- tune so it decelerates cart before the true end
+    params.c_wall   =  25;    % soft-wall damping (N*s/m) -- kills residual velocity into the wall
+    
+    % sensor & process noise, used by the lqg design
+    params.sigma_x     = 5e-4;  % cart position encoder noise, 1-sigma (m)   ~0.5 mm
+    params.sigma_theta = 1e-2;  % pendulum angle encoder noise, 1-sigma (rad) ~0.57 deg
+ 
+    % process noise intensity: how much we distrust the model's prediction
+    % of the (unmeasured) velocity states between samples
+    % larger values make the filter trust fresh measurements more and lag 
+    % less, at the cost of noisier velocity estimates
+    % needs tuning
+    params.q_dx     = 1e-4;  % process noise on cart velocity state
+    params.q_dtheta = 1e-3;  % process noise on pendulum angular velocity state
 end
+ 
