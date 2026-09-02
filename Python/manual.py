@@ -2,6 +2,7 @@ import os
 import time
 import keyboard
 import serial
+import sys
 from config import COM_PORT
 from cart_control import CartControl
 
@@ -9,8 +10,8 @@ enc_count_file = os.path.join(os.path.dirname(__file__), "enc_counts.txt")
 
 ser = serial.Serial(COM_PORT, 115200, timeout=1)
 cart = CartControl(ser, enc_count_file)
-# cart.handshake()
-# print("Loaded saved encoder count:", cart.saved_enc_count)
+cart.handshake()
+print("Loaded saved encoder count:", cart.saved_enc_count)
 
 key_state = {}
 
@@ -44,3 +45,4 @@ while True:
         time.sleep(1)
         saved = cart.save_enc_val()
         print("Stopped and saved encoder count:", saved)
+        sys.exit()

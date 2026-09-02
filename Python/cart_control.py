@@ -86,7 +86,7 @@ class CartControl:
                 continue
 
             error = rot_val - 30000
-            if abs(error) <= 10:
+            if abs(error) <= 100:
                 self.set_motor(0)
                 print("Cart is centered.")
                 break
