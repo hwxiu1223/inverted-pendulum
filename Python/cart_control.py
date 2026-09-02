@@ -55,10 +55,11 @@ class CartControl:
         mag_val, rotary_val = self.read_encoders()
 
         if mag_val is not None and rotary_val is not None:
-            print("MAG: raw-", mag_val, " rad-", mag_val * AS5600_RAW_TO_RADIANS,
-                  " deg-", mag_val * AS5600_RAW_TO_DEGREES, ", ROTARY: ", rotary_val)
-            self.last_mag_val = mag_val
-            self.last_rotary_val = rotary_val
+            if mag_val != self.last_mag_val or rotary_val != self.last_rotary_val:
+                print("MAG: raw-", mag_val, " rad-", mag_val * AS5600_RAW_TO_RADIANS,
+                      " deg-", mag_val * AS5600_RAW_TO_DEGREES, ", ROTARY: ", rotary_val)
+                self.last_mag_val = mag_val
+                self.last_rotary_val = rotary_val
 
         time.sleep(0.01)
         if self.locked and ((speed > 0 and rotary_val < 3000) or (speed < 0 and rotary_val > 57000)):

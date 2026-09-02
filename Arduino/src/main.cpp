@@ -155,4 +155,5 @@ void loop() {
       NVIC_SystemReset();
     }
   }          
+  // Serial.println(enc_count);
 }
