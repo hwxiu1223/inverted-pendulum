@@ -15,8 +15,6 @@ def cartpend(y, u):
 
     F_cart = m * L * dtheta**2 * Sy - d * dx - cd_cart * dx * abs(dx)
 
-    # Pivot-side damping "torque": linear bearing friction + nonlinear
-    # aerodynamic drag on the swinging pendulum (scales as w|w|)
     F_pivot = b * dtheta + cd_pend * dtheta * abs(dtheta)
 
     dy = np.zeros(4)

@@ -5,9 +5,11 @@ import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
 from dynamics import cartpend
 
-g, L, m, M, W, H, wr, mr, d, b, cd_cart, cd_pend = (
+g, L, m, M, W, H, wr, mr, d, b, cd_cart, cd_pend, u_max, v_max, x_min, x_max, x_margin, k_wall, c_wall = (
     constants.g, constants.L, constants.m, constants.M, constants.W, constants.H,
-    constants.wr, constants.mr, constants.d, constants.b, constants.cd_cart, constants.cd_pend
+    constants.wr, constants.mr, constants.d, constants.b, constants.cd_cart, constants.cd_pend,
+    constants.u_max, constants.v_max, constants.x_min, constants.x_max, constants.x_margin,
+    constants.k_wall, constants.c_wall
 )
 
 A_r = np.array([
@@ -32,31 +34,64 @@ R = np.array([[0.001]])
 K3, S, E = control.lqr(A_r, B_r, Q_r, R)
 K = np.hstack([[[0]], K3])
 
+def track_limit_force(x, dx):
+    """Soft virtual wall: as the cart's body edge nears either end of the
+    rail, ramp in a spring-damper restoring force so it decelerates and
+    reverses before actually hitting the end of travel."""
+    u_wall = 0
+    half_W = W / 2
+
+    if (x + half_W) > (x_max - x_margin):
+        penetration = (x + half_W) - (x_max - x_margin)
+        u_wall = -k_wall * penetration - c_wall * max(dx, 0)
+    elif (x - half_W) < (x_min + x_margin):
+        penetration = (x - half_W) - (x_min + x_margin)
+        u_wall = -k_wall * penetration - c_wall * min(dx, 0)
+
+    return u_wall
+
+
 def hybrid_controller(t, y, K):
     x, dx, theta, dtheta = y
 
-    theta_wrapped = (theta + np.pi) % (2 * np.pi) - np.pi
+    theta_wrapped = (theta % (2 * np.pi)) - np.pi
 
-    if abs(theta - np.pi) < 0.6:
-        target = np.array([x, 0, np.pi, 0])
+    # --- 1. LQR CATCH & BALANCE ---
+    if abs(theta_wrapped) < 0.6:
+        theta_target = theta - theta_wrapped
+        target = np.array([x, 0, theta_target, 0])
         u = -K @ (y - target)
+
+    # --- 2. ENERGY SWING-UP ---
     else:
-        if abs(theta_wrapped) < 0.05 and abs(dtheta) < 0.05:
-            u = 6
+        if t < 0.1:
+            u = u_max
         else:
             g_mag = abs(g)
             E = 0.5 * m * L**2 * dtheta**2 - m * g_mag * L * np.cos(theta)
             E_target = m * g_mag * L
-            ke = 0.4
-            u = ke * (E - E_target) * dtheta * np.cos(theta) - 0.2 * dx
+            ke = 5.0
+            u = ke * (E - E_target) * dtheta * np.cos(theta)
 
-        u = max(min(u, 20), -20)
+    # --- Motor force ceiling (droop when reinforcing current motion) ---
+    if dx != 0 and np.sign(u) == np.sign(dx):
+        u_max_eff = u_max * max(0, 1 - abs(dx) / v_max)
+    else:
+        u_max_eff = u_max
+    u = max(min(u, u_max_eff), -u_max_eff)
+
+    # --- Soft track-limit repulsion ---
+    u_wall = track_limit_force(x, dx)
+    u = u + u_wall
+
+    # Final hard clamp: never exceed the motor's absolute max
+    u = max(min(u, u_max), -u_max)
 
     dy = cartpend(y, u)
     return dy, u
 
 
-tspan = np.arange(0, 30.5, 0.5)
+tspan = np.arange(0, 30.1, 0.1)
 y0 = [0, 0, 0, 0]
 
 sol = solve_ivp(
