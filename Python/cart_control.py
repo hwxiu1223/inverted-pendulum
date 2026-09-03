@@ -28,14 +28,17 @@ class CartControl:
             return 0
 
     def handshake(self):
+        sent_count = False
         print("Initiating Handshake")
         saved_enc_count = self.load_enc_val()
         while True:
             response = self.ser.readline().decode('utf-8').strip()
-            if response == 'REQ':
+            if sent_count == False and response == 'REQ':
+                sent_count == True
                 print("Arduino request received")
                 self.ser.write(f"RET,{saved_enc_count}\n".encode())
                 print("Sending: ", f"RET, {saved_enc_count}")
+            elif response == 'REC':
                 break
             time.sleep(0.1)
         return saved_enc_count
@@ -61,14 +64,17 @@ class CartControl:
                 self.last_mag_val = mag_val
                 self.last_rotary_val = rotary_val
 
-        time.sleep(0.01)
-        if self.locked and ((speed > 0 and rotary_val < 3000) or (speed < 0 and rotary_val > 57000)):
-            speed = 0
+            if self.locked and ((speed > 0 and rotary_val < 3000) or (speed < 0 and rotary_val > 57000)):
+                speed = 0
+            
+            self.set_motor(speed)
+            if speed != self.last_speed_val:
+                print("Set motor: ", speed)
+            self.last_speed_val = speed
 
-        self.set_motor(speed)
-        if speed != self.last_speed_val:
-            print("Set motor: ", speed)
-        self.last_speed_val = speed
+        else:
+            print("!! Unable to get rotary encoder data !!")
+            self.set_motor(0)
 
     def save_enc_val(self):
         _, rot_val = self.read_encoders()
