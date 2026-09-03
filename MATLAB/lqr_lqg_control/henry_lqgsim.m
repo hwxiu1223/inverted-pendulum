@@ -1,67 +1,10 @@
-% This is the main simulation in MATLAB. 
+% This is the main simulation in MATLAB.
 clc; clear; close all;
-params = pendsys();
-    g = params.g;
-    L = params.L;
-    m = params.m;
-    M = params.M;
-    d = params.d;
-    b = params.b;
-    J = (4/3) * m * L^2;
-    Delta = (M+m)*J - m^2*L^2;
- 
-    % matrices created from equations of motion
-    % A acts as matrix for the system dynamics (state 'y')
-    % B acts as matrix mapping the input to the state ('u')
-    A = [0 1 0 0;
-        0 -J*d/Delta          -m^2*g*L^2/Delta      -m*L*b/Delta;
-        0 0 0 1;
-        0 -m*L*d/Delta        -(M+m)*m*g*L/Delta     -(M+m)*b/Delta];
-    B = [0; J/Delta; 0; m*L/Delta];
 
-    % lqg
-    % sensors on cart position and pendulum angle
-    C = [1 0 0 0;
-        0 0 1 0];
-
-    % lqr gain
-
-    % Q matrix represents the allowed deviation of a state variable from
-    % its desired target
-    % eg. Q(1,1) = 200 means our simulation will prioritize fixing our
-    % position to its desired value over cart velocity (Q(2,2)) and
-    % pendulum velocity (Q(4,4)), but less than the angle (Q(3,3))
-
-    % R value represents the penalty associated with the usage of the
-    % controller (Lower value faster correction; may need tuning)
-
-    % K runs everything through the lqr cost function and returns an
-    % optimized value that will be given to the input for control
-    Q = [200 0 0 0;
-        0 0 0 0;
-        0 0 1000 0;
-        0 0 0 0];
-    R = 0.01;
-    K = lqr(A, B, Q, R);
-
-
-    % kalman filter gain
-    % Qn represents any disturbances or unmodeled dynamics affecting the
-    % plant states (true physical states)
-    Qn = diag([0, params.q_dx, 0, params.q_dtheta]);
-
-    % Rn represents any noise or inaccuracies affecting the sensors
-    Rn = diag([params.sigma_x^2, params.sigma_theta^2]);
-
-    % process noise enter through matrix G
-    G = eye(4);
-
-    % lqe acts as modified lqr running through new Kalman filter
-    [L_gain, ~, ~] = lqe(A, G, C, Qn, Rn);
-
-    % checking that filter's error converges
-    fprintf('Estimator poles (hopefully all negative real part):\n');
-    disp(eig(A - L_gain*C).');
+% pull the plant model + LQR/Kalman gains from the same design function
+% the real-time hardware bridge (matlab_bridge.py) calls, so the sim and
+% the hardware path can never drift apart.
+[params, A, B, C, K, L_gain] = lqg_design();
 
     % simulation settings (using fixed step)
     dt = 0.002;     % estimator update / control period (s)
@@ -84,7 +27,7 @@ params = pendsys();
 
         % simulate noisy sensor reading
         y_meas = C*x_k + [params.sigma_x; params.sigma_theta].*randn(2,1);
-        
+
         % controller computing u from estimate and advancing estimator by
         % one step and return the force needed
         [u, xhat_next] = hybrid_controller_lqg(t_hist(k), xhat_k, y_meas, ...
@@ -105,7 +48,7 @@ params = pendsys();
     for k = 1:plot_every:N
         draw_cartpend(t_hist(1:k), y_true(1:k, :), params);
     end
- 
+
     % samples derivative f at four points across the interval and combines
     % them in a 1-2-2-1 weighted average
 function y_next = rk4_step(f, t, y, dt)
@@ -115,4 +58,3 @@ function y_next = rk4_step(f, t, y, dt)
     k4 = f(t + dt,     y + dt*k3);
     y_next = y + dt/6*(k1 + 2*k2 + 2*k3 + k4);
 end
- 
