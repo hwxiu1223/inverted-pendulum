@@ -79,8 +79,8 @@ void setup() {
   pinMode(PIN_A, INPUT_PULLUP);
   pinMode(PIN_B, INPUT_PULLUP);
   
-  uint_8_t a = digitalRead(PIN_A); //added this to fix lag
-  uint_8_t b = digitalRead(PIN_B);
+  uint8_t a = digitalRead(PIN_A); //added this to fix lag
+  uint8_t b = digitalRead(PIN_B);
   enc_prevState = (a << 1) | b;
 
   attachInterrupt(digitalPinToInterrupt(PIN_A), encoderISR, CHANGE);
@@ -99,7 +99,7 @@ void setup() {
     Serial.println("REQ");
     digitalWrite(LED_BUILTIN, HIGH);
     delay(100);                  
-    digitalWrite(LED_BUILTIN, LOW);  
+    digitalWrite(LED_BUILTIN, LOW);
     delay(400);
 
     if (Serial.available() > 0) {
