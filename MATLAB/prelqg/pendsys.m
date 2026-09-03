@@ -14,7 +14,7 @@ function params = pendsys(params)
     params.mr = .015; % mass radius (m)
     params.d = 5e-4;         % damping coeff
     params.b = 1e-6;        % pendulum pivot/bearing friction (N*m*s/rad)
-    params.cd_cart = 1e-4;  % cart aerodynamic drag coeff, quadratic in v (N*s^2/m^2)
+    params.cd_cart = 5e-5;  % cart aerodynamic drag coeff, quadratic in v (N*s^2/m^2)
     params.cd_pend = 1e-6;  % pendulum aerodynamic drag coeff, quadratic in w (N*m*s^2/rad^2)
 
     params.r_belt = 0.006;                 % belt/pulley drive radius (m)
