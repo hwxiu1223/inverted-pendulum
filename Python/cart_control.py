@@ -12,7 +12,7 @@ AS5600_RAW_TO_RADIANS, AS5600_RAW_TO_DEGREES = constants.AS5600_RAW_TO_RADIANS, 
 # them for real.
 # ---------------------------------------------------------------------------
 ROTARY_CENTER_COUNT = 30000        # rotary count at true track center (matches center_cart())
-ROTARY_COUNTS_PER_METER = 100000.0 # TODO: measure -- rotary counts per 1 m of cart travel
+ROTARY_COUNTS_PER_METER = 59000/0.99 # TODO: measure -- rotary counts per 1 m of cart travel
 ROTARY_SIGN = 1                    # flip to -1 if +x should be the other physical direction
 
 THETA_OFFSET_RAD = 0.0             # TODO: measure -- raw*AS5600_RAW_TO_RADIANS with pendulum hanging straight down
@@ -23,15 +23,15 @@ MOTOR_DEADBAND = 40                # same deadband compensation already used in 
 
 class CartControl:
     def __init__(self, ser, enc_count_file):
-      self.ser = ser
-      self.enc_count_file = enc_count_file
-      self.locked = True
-      self.last_mag_val = None
-      self.last_rotary_val = None
-      self.last_speed_val = 0
-      if not os.path.exists(self.enc_count_file):
-          with open(self.enc_count_file, "w") as file:
-              file.write("enc_count: 0\n")
+        self.ser = ser
+        self.enc_count_file = enc_count_file
+        self.locked = True
+        self.last_mag_val = None
+        self.last_rotary_val = None
+        self.last_speed_val = 0
+        if not os.path.exists(self.enc_count_file):
+            with open(self.enc_count_file, "w") as file:
+                file.write("enc_count: 0\n")
 
     def load_enc_val(self):
         try:
@@ -59,6 +59,7 @@ class CartControl:
         self.ser.write(f"M,{speed}\n".encode('utf-8'))
 
     def read_encoders(self):
+        self.ser.reset_input_buffer()
         self.ser.write(b"R\n")
         line = self.ser.readline().decode('utf-8').strip()
         if line.startswith("E"):
@@ -97,24 +98,34 @@ class CartControl:
         speed = max(min(speed, 255), -255)
         self.set_motor(speed)
 
-    def run_step(self, speed):
-        mag_val, rotary_val = self.read_encoders()
-
-        if mag_val is not None and rotary_val is not None:
-            if mag_val != self.last_mag_val or rotary_val != self.last_rotary_val:
-                print("MAG: raw-", mag_val, " rad-", mag_val * AS5600_RAW_TO_RADIANS,
-                      " deg-", mag_val * AS5600_RAW_TO_DEGREES, ", ROTARY: ", rotary_val)
-                self.last_mag_val = mag_val
-                self.last_rotary_val = rotary_val
-
-        time.sleep(0.01)
-        if self.locked and ((speed > 0 and rotary_val < 3000) or (speed < 0 and rotary_val > 57000)):
+    def run_step(self, speed, poll_encoders_every=5):
+        # Use the last known rotary reading for the lock check so a motor
+        # command never has to wait on a fresh (and possibly slow/blocked)
+        # encoder round trip. `rotary_val is not None` also prevents a
+        # TypeError on the very first call, before any reading exists.
+        rotary_val = self.last_rotary_val
+        if self.locked and rotary_val is not None and (
+            (speed > 0 and rotary_val < 3000) or (speed < 0 and rotary_val > 57000)
+        ):
             speed = 0
 
         self.set_motor(speed)
         if speed != self.last_speed_val:
             print("Set motor: ", speed)
         self.last_speed_val = speed
+
+        # Poll the encoders far less often than we send motor commands, so
+        # keypress responsiveness is never gated behind a serial round trip.
+        self._poll_counter = getattr(self, '_poll_counter', 0) + 1
+        if self._poll_counter % poll_encoders_every == 0:
+            mag_val, rotary_val = self.read_encoders()
+
+            if mag_val is not None and rotary_val is not None:
+                if mag_val != self.last_mag_val or rotary_val != self.last_rotary_val:
+                    print("MAG: raw-", mag_val, " rad-", mag_val * AS5600_RAW_TO_RADIANS,
+                          " deg-", mag_val * AS5600_RAW_TO_DEGREES, ", ROTARY: ", rotary_val)
+                    self.last_mag_val = mag_val
+                    self.last_rotary_val = rotary_val
 
     def save_enc_val(self):
         _, rot_val = self.read_encoders()

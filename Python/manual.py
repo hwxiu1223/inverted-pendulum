@@ -8,7 +8,7 @@ from cart_control import CartControl
 
 enc_count_file = os.path.join(os.path.dirname(__file__), "enc_counts.txt")
 
-ser = serial.Serial(COM_PORT, 115200, timeout=1)
+ser = serial.Serial(COM_PORT, 115200, timeout=0.1)
 cart = CartControl(ser, enc_count_file)
 
 enc_count = cart.handshake()
@@ -43,6 +43,8 @@ while True:
     if key_just_pressed('r'):
         cart.set_motor(0)
         cart.reset_enc_val()
+
+    # time.sleep(0.01)
 
     if key_just_pressed('space'):
         cart.set_motor(0)
