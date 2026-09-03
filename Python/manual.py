@@ -44,6 +44,8 @@ while True:
         cart.set_motor(0)
         cart.reset_enc_val()
 
+    # time.sleep(0.01)
+
     if key_just_pressed('space'):
         cart.set_motor(0)
         print("Cart stopped, saving encoder count...")

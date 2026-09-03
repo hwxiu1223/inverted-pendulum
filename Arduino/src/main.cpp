@@ -57,14 +57,12 @@ static const int8_t QEM[16] = {
 };
 
 void encoderISR() {
-  digitalWrite(LED_BUILTIN, HIGH);
   uint8_t a = digitalRead(PIN_A);
   uint8_t b = digitalRead(PIN_B);
   uint8_t newState = (a << 1) | b;
   uint8_t index = (enc_prevState << 2) | newState;
   enc_count += QEM[index];
   enc_prevState = newState;
-  digitalWrite(LED_BUILTIN, LOW);    
 }
 
 // Library Objects

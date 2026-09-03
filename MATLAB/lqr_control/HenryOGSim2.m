@@ -1,4 +1,4 @@
-clc; clear; close all;
+wclc; clear; close all;
     params = pendsys();
     g = params.g;
     L = params.L;

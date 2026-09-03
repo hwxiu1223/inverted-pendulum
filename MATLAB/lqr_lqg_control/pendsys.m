@@ -41,4 +41,3 @@ function params = pendsys(params)
     params.q_dx     = 1e-4;  % process noise on cart velocity state
     params.q_dtheta = 1e-3;  % process noise on pendulum angular velocity state
 end
- 
