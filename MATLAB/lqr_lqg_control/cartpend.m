@@ -10,13 +10,14 @@ function dy = cartpend(y,u,params)
     b = params.b;       % pendulum pivot (bearing) friction
     cd_cart = params.cd_cart;  % cart aerodynamic drag coeff (quadratic in v)
     cd_pend = params.cd_pend;  % pendulum aerodynamic drag coeff (quadratic in w)
-    J = (4/3) * m * L^2;
+    J = (4/3) * m * L^2;        % adjusted rotational inertia term for uniform rod
     D = (M+m)*J - m^2*L^2*Cy^2; % damping
 
-
+    % frictional/drag forces on cart and pivot
     F_cart = m*L*y(4)^2*Sy - d*y(2) - cd_cart*y(2)*abs(y(2));
     F_pivot = b*y(4) + cd_pend*y(4)*abs(y(4));
  
+    % define system of ODEs for inverted pendulum cart
     dy(1,1) = y(2);
     dy(2,1) = (1/D)*(-m^2*L^2*g*Cy*Sy + J*F_cart + m*L*Cy*F_pivot) + J*(1/D)*u;
     dy(3,1) = y(4);

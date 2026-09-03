@@ -6,7 +6,7 @@ function draw_cartpend(t_hist, y_hist, params)
     th = y_curr(3);
     dth = y_curr(4);
 
-    % Dimensions
+    % dimensions
     L = params.L; 
     W = params.W;  
     H = params.H; 
@@ -18,7 +18,7 @@ function draw_cartpend(t_hist, y_hist, params)
     x_max = params.x_max;
     margin = params.x_margin;
 
-    % Positions for the cart
+    % positions for the cart
     y = wr/2 + H/2; 
     w1x = x - W/2;
     w1y = 0;
@@ -27,15 +27,15 @@ function draw_cartpend(t_hist, y_hist, params)
     px = x + L*sin(th);
     py = y - L*cos(th);
 
-    % Ensure figure background is black
+    % ensure figure background is black
     set(gcf, 'Color', 'k', 'InvertHardcopy', 'off');
 
-    % Cart Animation
+    % cart Animation
 
     subplot(2, 1, 1);
-    hold off; % Clear previous frame
+    hold off; % clear previous frame
     
-    % Draw ground
+    % draw ground
     plot([x_min x_max], [0 0], 'w', 'LineWidth', 2);
     hold on;
     
@@ -49,25 +49,25 @@ function draw_cartpend(t_hist, y_hist, params)
     plot([x_min x_min], [-0.2 0.2], 'r', 'LineWidth', 3);
     plot([x_max x_max], [-0.2 0.2], 'r', 'LineWidth', 3);
 
-    % Draw cart, wheels, pendulum, and mass
+    % draw cart, wheels, pendulum, and mass
     rectangle('Position', [x-W/2, y-H/2, W, H], 'Curvature', .1, 'FaceColor', [1 0.1 0.1], 'EdgeColor', [1 1 1]);
     rectangle('Position', [w1x, w1y, wr, wr], 'Curvature', 1, 'FaceColor', [1 1 1], 'EdgeColor', [1 1 1]);
     rectangle('Position', [w2x, w2y, wr, wr], 'Curvature', 1, 'FaceColor', [1 1 1], 'EdgeColor', [1 1 1]);
     plot([x px], [y py], 'w', 'LineWidth', 2);
     rectangle('Position', [px-mr/2, py-mr/2, mr, mr], 'Curvature', 1, 'FaceColor', [.3 0.3 1], 'EdgeColor', [1 1 1]);
     
-    % Formatting
+    % formatting
     xlim([-0.5 0.5]);
     ylim([-.2 .2]);
     axis equal
     set(gca, 'Color', 'k', 'XColor', 'w', 'YColor', 'w');
     title('Cart-Pendulum Animation', 'Color', 'w');
 
-    % Subplot 2: State Tracking
+    % subplot 2: state tracking
     subplot(2, 1, 2);
     hold off;
     
-    % Plot position and angle history
+    % plot position and angle history
     plot(t_hist, y_hist(:, 1), 'c', 'LineWidth', 1.5); % Position (Cyan)
     hold on;
     plot(t_hist, y_hist(:, 2), 'y', 'LineWidth', 1.5); % Angle (Magenta)
@@ -77,11 +77,11 @@ function draw_cartpend(t_hist, y_hist, params)
     plot(t_hist, y_hist(:, 4), 'g', 'LineWidth', 1.5); % Angle (Magenta)
     grid on;
 
-    % Dynamic x-axis that grows with time, fixed y-axis
+    % dynamic x-axis that grows with time, fixed y-axis
     xlim([0, max(10, t_hist(end))]); 
     ylim([-20 20]);
     
-    % Formatting to match the black theme
+    % formatting to match the black theme
     set(gca, 'Color', 'k', 'XColor', 'w', 'YColor', 'w', 'GridColor', [0.3 0.3 0.3]);
     title('State Variables', 'Color', 'w');
     xlabel('Time (s)', 'Color', 'w');
