@@ -79,7 +79,7 @@ function draw_cartpend(t_hist, y_hist, params)
 
     % Dynamic x-axis that grows with time, fixed y-axis
     xlim([0, max(10, t_hist(end))]); 
-    ylim([-10 10]);
+    ylim([-20 20]);
     
     % Formatting to match the black theme
     set(gca, 'Color', 'k', 'XColor', 'w', 'YColor', 'w', 'GridColor', [0.3 0.3 0.3]);

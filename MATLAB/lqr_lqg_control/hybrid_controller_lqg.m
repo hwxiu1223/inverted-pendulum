@@ -21,41 +21,49 @@ if abs(theta_wrapped) > (pi - 0.5)
 else
 
     % swing-up controller
-
-    % kick if stuck at bottom
-    if abs(theta_wrapped)< 0.05 && abs(xhat(4)) < 0.1
+    J = (4/3)*params.m*params.L^2;
+    % initial kick
+    if abs(theta_wrapped) < 0.05 && abs(xhat(4)) < 0.1
         u = params.u_max;
 
     % swing-up law
     else
         g_mag = abs(params.g);
-        E = 0.5 * params.m * params.L^2 * xhat(4)^2 - params.m * g_mag * params.L * cos(theta_hat);
+        E = 0.5*J* xhat(4)^2 - params.m * g_mag * params.L * cos(theta_hat);
         E_target = params.m * g_mag * params.L;
-        ke = 2.4;
-        kx = 1.0;
+        ke = 24.0;
         kv = 0.2;
-        u = ke * (E - E_target) * xhat(4) * cos(theta_hat) - kx * xhat(1) - kv * xhat(2);
+        u = ke * (E - E_target) * xhat(4) * cos(theta_hat) - kv * xhat(2);
     end
 end
 
+% motor force ceiling
+if xhat(2) ~= 0 && sign(u) == sign(xhat(2))
+    % commanding force that reinforces current motion, applies droop
+    u_max_eff = params.u_max * max(0, 1 - abs(xhat(2))/params.v_max);
+else
+    % commanding braking, allows full torque
+    u_max_eff = params.u_max;
+end
+    u = max(min(u, u_max_eff), -u_max_eff);
+
 % track limits
 
-u_wall = track_limit_force(xhat(1), xhat(2), params);
-u = u + u_wall;
+    u_wall = track_limit_force(xhat(1), xhat(2), params);
+    u = u + u_wall;
 
-% motor limit
-u = max(min(u, params.u_max), -params.u_max);
+% final hard clamp: never command more than the motor's absolute max,
+    u = max(min(u, params.u_max), -params.u_max);
 
 % kalman filter stuff using simple forward-Euler step of length dt
 
-y_hat = C * xhat;
-dxhat = A * xhat + B * u + L_gain * (y_meas - y_hat);
-xhat_nxt = xhat + dt * dxhat;
-
+dxhat_nonlin = cartpend(xhat, u, params);
+xhat_nxt = xhat + dt*dxhat_nonlin + dt*L_gain*(y_meas - C*xhat);
+ 
 function u_wall = track_limit_force(x, dx, params)
     u_wall = 0;
     margin = params.x_margin;
-
+ 
     if (x) > (params.x_max - margin)
         penetration = (x) - (params.x_max - margin);
         u_wall = -params.k_wall*penetration - params.c_wall*max(dx, 0);
@@ -65,3 +73,4 @@ function u_wall = track_limit_force(x, dx, params)
     end
 end
 end
+ 

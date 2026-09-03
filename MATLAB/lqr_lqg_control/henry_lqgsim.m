@@ -7,11 +7,14 @@ params = pendsys();
     d = params.d;
     b = params.b;
 
+    J = (4/3) * m * L^2;
+    Delta = (M+m)*J - m^2*L^2;
+ 
     A = [0 1 0 0;
-        0 -d/M -m*g/M -b/(M*L);
+        0 -J*d/Delta          -m^2*g*L^2/Delta      -m*L*b/Delta;
         0 0 0 1;
-        0 -d/(M*L) -(M+m)*g/(M*L) -(M+m)*b/(m*M*L^2)];
-    B = [0; 1/M; 0; 1/(M*L)];
+        0 -m*L*d/Delta        -(M+m)*m*g*L/Delta     -(M+m)*b/Delta];
+    B = [0; J/Delta; 0; m*L/Delta];
 
     % new lqg stuff
     % sensors on cart position and pendulum angle
@@ -20,7 +23,7 @@ params = pendsys();
 
     % lqr gain
 
-    Q = [100 0 0 0;
+    Q = [200 0 0 0;
         0 0 0 0;
         0 0 1000 0;
         0 0 0 0];
@@ -50,7 +53,7 @@ params = pendsys();
 
     y_true = zeros(N,4); % true plant state
     xhat_hist = zeros(N,4); % Kalman filter estimate
-    y_true(1,:) = [0 0 pi-0.1 0]; % initial plant state
+    y_true(1,:) = [0 0 0 0]; % initial plant state
     xhat_hist(1,:) = [0 0 0 0];
 
     rng(1); % reproducible sensor noise draw
