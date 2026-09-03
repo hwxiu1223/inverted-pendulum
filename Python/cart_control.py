@@ -42,6 +42,7 @@ class CartControl:
                 break
             time.sleep(0.1)
         return saved_enc_count
+    
 
     def set_motor(self, speed):
         self.ser.write(f"M,{speed}\n".encode('utf-8'))
