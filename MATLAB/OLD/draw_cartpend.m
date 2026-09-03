@@ -7,10 +7,7 @@ function draw_cartpend(t_hist, y_hist, params)
     dth = y_curr(4);
 
     % Dimensions
-    g = params.g;
     L = params.L; 
-    m = params.m;
-    M = params.M;
     W = params.W;  
     H = params.H; 
     wr = params.wr; 
@@ -39,7 +36,7 @@ function draw_cartpend(t_hist, y_hist, params)
     hold off; % Clear previous frame
     
     % Draw ground
-    plot([x_min-2.5 x_max+2.5], [0 0], 'w', 'LineWidth', 2);
+    plot([x_min x_max], [0 0], 'w', 'LineWidth', 2);
     hold on;
     
     % shaded soft-wall areas

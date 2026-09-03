@@ -32,7 +32,9 @@ else
         E = 0.5 * params.m * params.L^2 * xhat(4)^2 - params.m * g_mag * params.L * cos(theta_hat);
         E_target = params.m * g_mag * params.L;
         ke = 2.4;
-        u = ke * (E - E_target) * xhat(4) * cos(theta_hat);
+        kx = 1.0;
+        kv = 0.2;
+        u = ke * (E - E_target) * xhat(4) * cos(theta_hat) - kx * xhat(1) - kv * xhat(2);
     end
 end
 

@@ -1,7 +1,7 @@
 clc; clear; close all;
-params = pendsys();
+    params = pendsys();
     g = params.g;
-    L = params.L; % length of the pendulum
+    L = params.L;
     m = params.m;
     M = params.M;
     d = params.d;
@@ -14,7 +14,7 @@ params = pendsys();
         0 -d/(M*L) -(M+m)*g/(M*L) -(M+m)*b/(m*M*L^2)];
     B = [0; 1/M; 0; 1/(M*L)];
 
-    Q = [100 0 0 0;
+    Q = [200 0 0 0;
         0 0 0 0;
         0 0 1000 0;
         0 0 0 0];
