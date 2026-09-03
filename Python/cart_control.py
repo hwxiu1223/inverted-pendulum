@@ -34,7 +34,7 @@ class CartControl:
         while True:
             response = self.ser.readline().decode('utf-8').strip()
             if sent_count == False and response == 'REQ':
-                sent_count == True
+                sent_count = True 
                 print("Arduino request received")
                 self.ser.write(f"RET,{saved_enc_count}\n".encode())
                 print("Sending: ", f"RET, {saved_enc_count}")
@@ -48,11 +48,28 @@ class CartControl:
 
     def read_encoders(self):
         self.ser.write(b"R\n")
-        line = self.ser.readline().decode('utf-8').strip()
-        if line.startswith("E"):
-            parts = line.split(',')
-            return int(parts[1]), int(parts[2])
+        # line = self.ser.readline().decode('utf-8').strip()
+        # if line.startswith("E"):
+        #     parts = line.split(',')
+        #     return int(parts[1]), int(parts[2])
+        # return None, None
+        deadline = time.time() + 0.05 #0.5 second timeout
+        while time.time() < deadline:
+            line = self.ser.readline().decode('utf-8').strip()
+
+            if not line:
+                continue
+            if line.startswith("E"):
+                part = line.split(',')
+                if len(part) == 3:
+                    try:
+                        mag_val = int(part[1])
+                        rotary_val = int(part[2])
+                        return mag_val, rotary_val
+                    except ValueError:
+                        pass
         return None, None
+                
 
     def run_step(self, speed):
         mag_val, rotary_val = self.read_encoders()

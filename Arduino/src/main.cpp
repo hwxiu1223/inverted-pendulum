@@ -57,14 +57,14 @@ static const int8_t QEM[16] = {
 };
 
 void encoderISR() {
-  digitalWrite(LED_BUILTIN, HIGH);
+  // digitalWrite(LED_BUILTIN, HIGH);
   uint8_t a = digitalRead(PIN_A);
   uint8_t b = digitalRead(PIN_B);
   uint8_t newState = (a << 1) | b;
   uint8_t index = (enc_prevState << 2) | newState;
   enc_count += QEM[index];
   enc_prevState = newState;
-  digitalWrite(LED_BUILTIN, LOW);    
+  // digitalWrite(LED_BUILTIN, LOW);    
 }
 
 // Library Objects
@@ -81,8 +81,8 @@ void setup() {
   pinMode(PIN_A, INPUT_PULLUP);
   pinMode(PIN_B, INPUT_PULLUP);
   
-  uint_8_t a = digitalRead(PIN_A); //added this to fix lag
-  uint_8_t b = digitalRead(PIN_B);
+  uint8_t a = digitalRead(PIN_A); //added this to fix lag
+  uint8_t b = digitalRead(PIN_B);
   enc_prevState = (a << 1) | b;
 
   attachInterrupt(digitalPinToInterrupt(PIN_A), encoderISR, CHANGE);
