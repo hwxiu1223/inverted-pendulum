@@ -1,5 +1,2 @@
-<<<<<<< HEAD
 enc_count: 30069
-=======
-enc_count: 30049
->>>>>>> parent of e8306fd (synced up main and manual)
+
