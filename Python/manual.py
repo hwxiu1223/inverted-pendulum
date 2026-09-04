@@ -10,7 +10,6 @@ enc_count_file = os.path.join(os.path.dirname(__file__), "enc_counts.txt")
 
 ser = serial.Serial(COM_PORT, 115200, timeout=0.1)
 cart = CartControl(ser, enc_count_file)
-
 enc_count = cart.handshake()
 print("Loaded saved encoder count:", enc_count)
 
