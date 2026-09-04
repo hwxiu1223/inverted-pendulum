@@ -27,20 +27,36 @@ class CartControl:
             print("no prev value or error message")
             return 0
 
-    def handshake(self):
+    def handshake(self, timeout=5.0):
         print("Initiating Handshake")
         saved_enc_count = self.load_enc_val()
-        # self.ser.write(b"ST\n")   # force a known state regardless of prior run
-        # time.sleep(0.5)
-        # start = time.time()
+
+        # Let native-USB re-enumeration finish before we start reading.
+        # Opening the port can reset the R4 and briefly tear down/rebuild
+        # the USB connection; reading too early races that transition.
+        time.sleep(2.0)
+        self.ser.reset_input_buffer()
+
+        start = time.time()
         while True:
-            response = self.ser.readline().decode('utf-8').strip()
-            if response == 'REQ':
-                self.ser.write(f"RET,{saved_enc_count}\n".encode())
-                break
-            # if time.time() - start > 5:
-            #     print("No REQ received after 5s — check board power/LED pattern.")
-            #     start = time.time()
+            raw = self.ser.readline()
+            if raw:
+                try:
+                    response = raw.decode('utf-8', errors='replace').strip()
+                except UnicodeDecodeError:
+                    response = ''
+                if response:
+                    print("handshake rx:", repr(response))  # remove once confirmed working
+                if response == 'REQ':
+                    self.ser.write(f"RET,{saved_enc_count}\n".encode())
+                    break
+
+            if time.time() - start > timeout:
+                raise TimeoutError(
+                    f"No REQ received within {timeout}s — port may be stale "
+                    f"after board reset. Try closing/reopening the port."
+                )
+
         return saved_enc_count
 
     def set_motor(self, speed):

@@ -100,8 +100,10 @@ bool readLineNonBlocking() {
 }
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
   Wire.begin();
+  Wire.setClock(100000);       // stick to standard 100kHz — more noise-tolerant than 400kHz
+  Wire.setTimeout(50);         // ms; abort a stuck transaction instead of hanging indefinitely
   motorDriver.Enable();
   magneticEncoder.begin();
 
@@ -112,12 +114,12 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(PIN_A), encoderISR, CHANGE);
   attachInterrupt(digitalPinToInterrupt(PIN_B), encoderISR, CHANGE);
 
-  // while (!magneticEncoder.isConnected()) {
-  //   digitalWrite(LED_BUILTIN, HIGH);
-  //   delay(100);
-  //   digitalWrite(LED_BUILTIN, LOW);
-  //   delay(400);
-  // }
+  while (!magneticEncoder.isConnected()) {
+    digitalWrite(LED_BUILTIN, HIGH);
+    delay(100);
+    digitalWrite(LED_BUILTIN, LOW);
+    delay(900);
+  }
 
   bool ready = false;
 
@@ -160,7 +162,7 @@ void loop() {
 
     // Parse Request for Data (e.g., "R")
     else if (inputBuffer[0] == 'R' && inputBuffer[1] == '\0') {
-      // magAngle = magneticEncoder.readAngle();
+      magAngle = magneticEncoder.readAngle();
 
       // Send back: E,magAngle,rotaryCount\n
       Serial.print("E,");
