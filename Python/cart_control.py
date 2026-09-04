@@ -28,19 +28,19 @@ class CartControl:
             return 0
 
     def handshake(self):
-        sent_count = False
         print("Initiating Handshake")
         saved_enc_count = self.load_enc_val()
+        # self.ser.write(b"ST\n")   # force a known state regardless of prior run
+        # time.sleep(0.5)
+        # start = time.time()
         while True:
             response = self.ser.readline().decode('utf-8').strip()
-            if sent_count == False and response == 'REQ':
-                sent_count == True
-                print("Arduino request received")
+            if response == 'REQ':
                 self.ser.write(f"RET,{saved_enc_count}\n".encode())
-                print("Sending: ", f"RET, {saved_enc_count}")
-            elif response == 'REC':
                 break
-            time.sleep(0.1)
+            # if time.time() - start > 5:
+            #     print("No REQ received after 5s — check board power/LED pattern.")
+            #     start = time.time()
         return saved_enc_count
 
     def set_motor(self, speed):
