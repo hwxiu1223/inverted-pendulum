@@ -25,12 +25,12 @@ def key_just_pressed(key):
 
 while True:
     if key_just_pressed('p'):
-        control_active = not control_active
-    if control_active:
-        print("starting control")
-    else:
-        cart.set_motor(0)
-        print("stopping control")
+      control_active = not control_active
+      if control_active:
+          print("starting control")
+      else:
+          cart.set_motor(0)
+          print("stopping control")
 
     if control_active:
         # TODO: replace with actual balancing/control logic
