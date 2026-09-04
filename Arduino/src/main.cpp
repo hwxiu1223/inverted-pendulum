@@ -81,6 +81,10 @@ void setup() {
   pinMode(PIN_A, INPUT_PULLUP);
   pinMode(PIN_B, INPUT_PULLUP);
   
+  // uint_8_t a = digitalRead(PIN_A); //added this to fix lag
+  // uint_8_t b = digitalRead(PIN_B);
+  // enc_prevState = (a << 1) | b;
+
   attachInterrupt(digitalPinToInterrupt(PIN_A), encoderISR, CHANGE);
   attachInterrupt(digitalPinToInterrupt(PIN_B), encoderISR, CHANGE);
 
@@ -88,7 +92,7 @@ void setup() {
     digitalWrite(LED_BUILTIN, HIGH);
     delay(100);                  
     digitalWrite(LED_BUILTIN, LOW);    
-    delay(100);  
+    delay(400);  
   }
 
   char ready = 0;

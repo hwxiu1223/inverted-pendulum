@@ -9,14 +9,14 @@ function dy = hybrid_controller(t, y, params, K)
     theta_wrapped = wrapToPi(theta);
     
     % LQR Controller
-    if abs(theta_wrapped) > (pi - 0.5)
+    if abs(theta_wrapped) > (pi - 0.6)
         theta_target = sign(theta_wrapped) * pi;
         theta_target_global = theta - theta_wrapped + theta_target;
         u = -K * (y - [0; 0; theta_target_global; 0]); 
     else
     
     % Swing-up Controller
-    
+    J = (4/3)*params.m*params.L^2;
     % Initial Kick
         if abs(theta_wrapped) < 0.05 && abs(dtheta) < 0.1
             u = params.u_max;
@@ -24,12 +24,22 @@ function dy = hybrid_controller(t, y, params, K)
     % Swing-up Law
         else
             g_mag = abs(params.g);
-            E = 0.5 * params.m * params.L^2 * dtheta^2 - params.m * g_mag * params.L * cos(theta);
+            E = 0.5*J*dtheta^2 - params.m*g_mag*params.L*cos(theta);
             E_target = params.m * g_mag * params.L;
-            ke = 2.4; 
-            u = ke * (E - E_target) * dtheta * cos(theta);
+            ke = 12.0; 
+            u = ke * (E - E_target) * dtheta * cos(theta) - 0.2 * dx;
         end
     end
+    
+    % Motor force ceiling
+    if dx ~= 0 && sign(u) == sign(dx)
+    % Commanding force that reinforces current motion -> droop applies
+        u_max_eff = params.u_max * max(0, 1 - abs(dx)/params.v_max);
+    else
+    % Commanding braking/reversal -> full torque available
+        u_max_eff = params.u_max;
+    end
+u = max(min(u, u_max_eff), -u_max_eff);
 
     % --- Soft track-limit repulsion (virtual wall near rail ends) ---
     u_wall = track_limit_force(x, dx, params);
