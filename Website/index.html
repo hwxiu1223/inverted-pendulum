@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inverted Pendulum</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+</body>
+
+<nav>
+  <a href="#overview">Overview</a>
+  <a href="#demo">Live Demo</a>
+  <a href="#technical">The Meat and Potatoes</a>
+  <a href="#results">The Final Prototype</a>
+</nav>
+ 
+<section id="hero">
+  <h1>Inverted Pendulum Control System</h1>
+  <p class="sub">They thought they could do three...</p>
+</section>
+ 
+<section id="overview">
+  <h2>Overview</h2>
+  <p>Earlier this year (2026), my friend shared with me an Instagram reel of a triple inverted pendulum
+    balancing itself on a cart. It included the equations of motion for the system, a massive list of 
+    hieroglyphics that neither of us could come close to comprehending, but it seemed like it might be
+    interesting to work towards. So, over the last couple of months, he and I, along with a couple other 
+    friends, have been doing exactly that: working on solving a single inverted pendulum, a classic 
+    control systems problem, as a stepping stone toward eventually solving the triple inverted pendulum. 
+    And, after a lot of trial, error, and procrastination, we can say with confidence that we are not ready
+    for a triple inverted pendulum, and that perhaps a change in majors is due. However, we did
+    manage to get a single inverted pendulum to balance itself on a cart, and this website documents our work,
+    showing particularly what not to do to get this pendulum upright. </p>
+</section>
+ 
+<section id="demo">
+  <h2>Live Demo</h2>
+  <p>The simulation below uses the same nonlinear cart-pole dynamics as the physical system,
+    along with the hybrid swing-up and LQR controller system that we used. Use your mouse and move
+    around the pendulum cart to see how the system responds. Please. I spent a lot of time on it.</p>
+ 
+  <div id="stage">
+    <canvas id="canvas" width="640" height="360"></canvas>
+    <div class="controls">
+      <button class="primary" id="disturbBtn">Give it a nudge</button>
+      <button id="resetBtn">Reset</button>
+      <button id="controllerBtn">Controller: ON</button>
+    </div>
+    <div class="stats">
+      <div>Angle: <span class="val" id="angleStat">0.0&deg;</span></div>
+      <div>Cart position: <span class="val" id="posStat">0.00 m</span></div>
+      <div>Force applied: <span class="val" id="forceStat">0.0 N</span></div>
+    </div>
+    <div class="hint">Drag left/right on the pendulum to change the angle of it, and watch how the cart responds.</div>
+  </div>
+</section>
+ 
+<section id="technical">
+  <h2>The Meat and Potatoes</h2>
+  <p>Describe your control strategy here &mdash; PID, LQR, state-space feedback, or whatever
+     you used on the physical build. Include your governing equations, sensor setup
+     (encoders, IMU), and actuator (motor/driver) details.</p>
+</section>
+ 
+<section id="results">
+  <h2>The Final Prototype</h2>
+  <p>Add plots of angle vs. time, settling time, or video of the physical pendulum
+     being balanced here.</p>
+</section>
+ 
+<footer>
+  Built with HTML, CSS, and JavaScript.
+</footer>
+ 
+<script>
+(function() {
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+ 
+  // ---- Physical parameters ----
+  const g = 9.81;      // gravity
+  const M = 1.2;       // cart mass (kg)
+  const m = 0.15;       // pole mass (kg)
+  const l = 0.5;        // half-length of pole (m)
+  const cartFriction = 0.9; // damping on cart velocity
+ 
+  // ---- State ----
+  let x = 0;          // cart position (m), 0 = center
+  let xdot = 0;        // cart velocity
+  let theta = 0.18;    // pole angle from vertical (rad) -- start slightly off
+  let thetadot = 0;
+ 
+  let controllerOn = true;
+  let userForce = 0;   // force from mouse drag
+  let lastForce = 0;
+ 
+  // Feedback gains (hand-tuned state feedback: F = -(Kx*x + Kxd*xdot + Kt*theta + Ktd*thetadot))
+  const Kx = 4;
+  const Kxd = 6;
+  const Kt = -55;
+  const Ktd = -9;
+ 
+  const pxPerMeter = 140;
+  const groundY = H - 70;
+ 
+  function step(dt) {
+    let F = userForce;
+    if (controllerOn) {
+      F += -(Kx * x + Kxd * xdot + Kt * theta + Ktd * thetadot);
+    }
+    F = Math.max(-40, Math.min(40, F));
+    lastForce = F;
+ 
+    const sinT = Math.sin(theta);
+    const cosT = Math.cos(theta);
+ 
+    const thetaAccNum = g * sinT + cosT * (-F - m * l * thetadot * thetadot * sinT) / (M + m);
+    const thetaAccDen = l * (4 / 3 - (m * cosT * cosT) / (M + m));
+    const thetaAcc = thetaAccNum / thetaAccDen;
+ 
+    const xAcc = (F + m * l * (thetadot * thetadot * sinT - thetaAcc * cosT)) / (M + m) - cartFriction * xdot * 0.02;
+ 
+    xdot += xAcc * dt;
+    x += xdot * dt;
+    thetadot += thetaAcc * dt;
+    theta += thetadot * dt;
+ 
+    if (x > 2.2) { x = 2.2; xdot = 0; }
+    if (x < -2.2) { x = -2.2; xdot = 0; }
+  }
+ 
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+ 
+    ctx.strokeStyle = '#2a3348';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(40, groundY + 30);
+    ctx.lineTo(W - 40, groundY + 30);
+    ctx.stroke();
+ 
+    ctx.fillStyle = '#3a4560';
+    for (let i = -2; i <= 2; i++) {
+      const tx = W / 2 + i * pxPerMeter;
+      ctx.fillRect(tx - 1, groundY + 25, 2, 10);
+    }
+ 
+    const cartX = W / 2 + x * pxPerMeter;
+    const cartY = groundY;
+    const cartW = 90, cartH = 40;
+ 
+    const poleLen = l * 2 * pxPerMeter;
+    const bobX = cartX + Math.sin(theta) * poleLen;
+    const bobY = cartY - Math.cos(theta) * poleLen;
+ 
+    ctx.strokeStyle = '#f5a05c';
+    ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(cartX, cartY - cartH / 2);
+    ctx.lineTo(bobX, bobY);
+    ctx.stroke();
+ 
+    ctx.fillStyle = '#f5a05c';
+    ctx.beginPath();
+    ctx.arc(bobX, bobY, 12, 0, Math.PI * 2);
+    ctx.fill();
+ 
+    const grad = ctx.createLinearGradient(0, cartY - cartH / 2, 0, cartY + cartH / 2);
+    grad.addColorStop(0, '#7cefd6');
+    grad.addColorStop(1, '#3fa892');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.roundRect(cartX - cartW / 2, cartY - cartH / 2, cartW, cartH, 6);
+    ctx.fill();
+ 
+    ctx.fillStyle = '#0a1018';
+    ctx.beginPath();
+    ctx.arc(cartX - cartW / 3, cartY + cartH / 2, 8, 0, Math.PI * 2);
+    ctx.arc(cartX + cartW / 3, cartY + cartH / 2, 8, 0, Math.PI * 2);
+    ctx.fill();
+ 
+    ctx.fillStyle = '#0a1018';
+    ctx.beginPath();
+    ctx.arc(cartX, cartY - cartH / 2, 5, 0, Math.PI * 2);
+    ctx.fill();
+ 
+    if (Math.abs(lastForce) > 0.5) {
+      const dir = Math.sign(lastForce);
+      const len = Math.min(Math.abs(lastForce), 40) * 1.2;
+      ctx.strokeStyle = '#5ee6c8';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(cartX, cartY);
+      ctx.lineTo(cartX + dir * len, cartY);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(cartX + dir * len, cartY);
+      ctx.lineTo(cartX + dir * (len - 8), cartY - 5);
+      ctx.lineTo(cartX + dir * (len - 8), cartY + 5);
+      ctx.closePath();
+      ctx.fillStyle = '#5ee6c8';
+      ctx.fill();
+    }
+ 
+    if (Math.abs(theta) > Math.PI / 2) {
+      ctx.fillStyle = 'rgba(255, 80, 80, 0.08)';
+      ctx.fillRect(0, 0, W, H);
+    }
+  }
+ 
+  function updateStats() {
+    document.getElementById('angleStat').textContent = (theta * 180 / Math.PI).toFixed(1) + '°';
+    document.getElementById('posStat').textContent = x.toFixed(2) + ' m';
+    document.getElementById('forceStat').textContent = lastForce.toFixed(1) + ' N';
+  }
+ 
+  let running = true;
+  let lastTime = null;
+  function loop(t) {
+    if (lastTime === null) lastTime = t;
+    let dt = (t - lastTime) / 1000;
+    lastTime = t;
+    dt = Math.min(dt, 0.033);
+ 
+    const substeps = 4;
+    for (let i = 0; i < substeps; i++) step(dt / substeps);
+ 
+    draw();
+    updateStats();
+    if (running) requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+ 
+  let dragging = false;
+ 
+  function setForceFromDrag(clientX) {
+    const rect = canvas.getBoundingClientRect();
+    const cx = clientX - rect.left;
+    const cartX = W / 2 + x * pxPerMeter;
+    const diff = cx - cartX;
+    userForce = Math.max(-25, Math.min(25, diff * 0.08));
+  }
+ 
+  canvas.addEventListener('mousedown', (e) => {
+    dragging = true;
+    setForceFromDrag(e.clientX);
+  });
+  window.addEventListener('mousemove', (e) => {
+    if (dragging) setForceFromDrag(e.clientX);
+  });
+  window.addEventListener('mouseup', () => {
+    dragging = false;
+    userForce = 0;
+  });
+  canvas.addEventListener('touchstart', (e) => {
+    dragging = true;
+    setForceFromDrag(e.touches[0].clientX);
+  });
+  canvas.addEventListener('touchmove', (e) => {
+    if (dragging) setForceFromDrag(e.touches[0].clientX);
+    e.preventDefault();
+  }, { passive: false });
+  window.addEventListener('touchend', () => {
+    dragging = false;
+    userForce = 0;
+  });
+ 
+  document.getElementById('disturbBtn').addEventListener('click', () => {
+    thetadot += (Math.random() - 0.5) * 4;
+    xdot += (Math.random() - 0.5) * 1.5;
+  });
+ 
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    x = 0; xdot = 0; theta = 0.18; thetadot = 0; userForce = 0;
+  });
+ 
+  const controllerBtn = document.getElementById('controllerBtn');
+  controllerBtn.addEventListener('click', () => {
+    controllerOn = !controllerOn;
+    controllerBtn.textContent = 'Controller: ' + (controllerOn ? 'ON' : 'OFF');
+  });
+})();
+</script>
+</body>
+</html>
+ 
+</html>
