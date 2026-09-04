@@ -72,7 +72,7 @@ BTS7960 motorDriver(L_EN, R_EN, L_PWM, R_PWM);
 AS5600 magneticEncoder;
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(9600);
   Wire.begin();
   motorDriver.Enable();
   magneticEncoder.begin();
@@ -96,9 +96,9 @@ void setup() {
   while (!ready) {
     Serial.println("REQ");
     digitalWrite(LED_BUILTIN, HIGH);
-    delay(100);                  
+    delay(10);                  
     digitalWrite(LED_BUILTIN, LOW);  
-    delay(400);
+    delay(10);
 
     if (Serial.available() > 0) {
       String message = Serial.readStringUntil('\n');

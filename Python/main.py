@@ -25,7 +25,7 @@
 
     while True:
         if key_just_pressed('p'):
-        control_active = not control_active
+              control_active = not control_active
         if control_active:
             print("starting control")
         else:
