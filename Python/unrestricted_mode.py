@@ -29,6 +29,6 @@ while True:
         cart.set_motor(255)
     else:
         cart.set_motor(0)
-    mag_val, rotary_val = cart.read_encoders()
-    if mag_val is not None and rotary_val is not None:
-        print("MAG: raw-", mag_val, ", ROTARY: ", rotary_val)
+    pend_val, rotary_val = cart.read_encoders()
+    if pend_val is not None and rotary_val is not None:
+        print("PENDULUM:", pend_val, ", CART:", rotary_val)

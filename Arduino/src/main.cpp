@@ -78,7 +78,7 @@ void encoderISR() {
 }
 
 
-void pendulumEncoderISR() {
+void pendulumEncoder_poll() {
 
   uint8_t a = digitalRead(PEND_A);
   uint8_t b = digitalRead(PEND_B);
@@ -121,6 +121,12 @@ bool readLineNonBlocking() {
 
 void setup() {
   Serial.begin(115200);
+  Serial.begin(115200);
+delay(1000);
+Serial.print("PIN_A interrupt#: ");  Serial.println(digitalPinToInterrupt(PIN_A));
+Serial.print("PIN_B interrupt#: ");  Serial.println(digitalPinToInterrupt(PIN_B));
+Serial.print("PEND_A interrupt#: "); Serial.println(digitalPinToInterrupt(PEND_A));
+Serial.print("PEND_B interrupt#: "); Serial.println(digitalPinToInterrupt(PEND_B));
   // Wire.begin();
   // Wire.setClock(100000);       // stick to standard 100kHz — more noise-tolerant than 400kHz
   // Wire.setTimeout(50);         // ms; abort a stuck transaction instead of hanging indefinitely
@@ -139,8 +145,7 @@ void setup() {
 
   attachInterrupt(digitalPinToInterrupt(PIN_A), encoderISR, CHANGE);
   attachInterrupt(digitalPinToInterrupt(PIN_B), encoderISR, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(PEND_A), pendulumEncoderISR, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(PEND_B), pendulumEncoderISR, CHANGE);
+  
 
   // while (!magneticEncoder.isConnected()) {
   //   digitalWrite(LED_BUILTIN, HIGH);
@@ -173,6 +178,7 @@ void setup() {
 }
 
 void loop() {
+  pendulumEncoder_poll();
   if (readLineNonBlocking()) {
     // Parse Motor Command (e.g., "M,150")
     if (inputBuffer[0] == 'M') {
