@@ -1,17 +1,17 @@
 # cart_control.py
 import time
 import os
-import constants
+# import constants
 from config import COM_PORT
 
-AS5600_RAW_TO_RADIANS, AS5600_RAW_TO_DEGREES = constants.AS5600_RAW_TO_RADIANS, constants.AS5600_RAW_TO_DEGREES
+# AS5600_RAW_TO_RADIANS, AS5600_RAW_TO_DEGREES = constants.AS5600_RAW_TO_RADIANS, constants.AS5600_RAW_TO_DEGREES
 
 class CartControl:
     def __init__(self, ser, enc_count_file):
       self.ser = ser
       self.enc_count_file = enc_count_file
       self.locked = True
-      self.last_mag_val = None
+      self.last_pend_val = None
       self.last_rotary_val = None
       self.last_speed_val = 0
       if not os.path.exists(self.enc_count_file):
@@ -71,13 +71,12 @@ class CartControl:
         return None, None
 
     def run_step(self, speed):
-        mag_val, rotary_val = self.read_encoders()
+        pend_val, rotary_val = self.read_encoders()
 
-        if mag_val is not None and rotary_val is not None:
-            if mag_val != self.last_mag_val or rotary_val != self.last_rotary_val:
-                print("MAG: raw-", mag_val, " rad-", mag_val * AS5600_RAW_TO_RADIANS,
-                      " deg-", mag_val * AS5600_RAW_TO_DEGREES, ", ROTARY: ", rotary_val)
-                self.last_mag_val = mag_val
+        if pend_val is not None and rotary_val is not None:
+            if pend_val != self.last_pend_val or rotary_val != self.last_rotary_val:
+                print("PENDULUM", pend_val, ", ROTARY: ", rotary_val)
+                self.last_pend_val = pend_val
                 self.last_rotary_val = rotary_val
 
             if self.locked and ((speed > 0 and rotary_val < 3000) or (speed < 0 and rotary_val > 57000)):
