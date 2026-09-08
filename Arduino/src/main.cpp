@@ -254,9 +254,9 @@ void loop() {
       // E,pendulumCount,cartCount
 
       Serial.print("E,");
-      Serial.print(currentPendCount);
+      Serial.print(currentCartCount);
       Serial.print(",");
-      Serial.println(currentCartCount);
+      Serial.println(currentPendCount);
     }
 
     // Reset arduino
