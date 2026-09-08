@@ -37,6 +37,7 @@ activity. Fixed buffers use zero heap allocation, so this can run indefinitely.
 */
 
 #include <Arduino.h>
+#include "FspTimer.h"
 
 #include "BTS7960.h"
 // #include "AS5600.h"
@@ -78,8 +79,11 @@ void encoderISR() {
 }
 
 
-void pendulumEncoder_poll() {
-
+// Called from a hardware timer interrupt (see beginPendulumTimer), NOT from loop().
+// This guarantees a fixed poll rate regardless of what loop() is doing (serial
+// parsing, Serial.print, motor commands, etc.), so we don't miss quadrature
+// transitions during a blocking Serial call.
+void pendulumEncoder_poll(timer_callback_args_t *arg) {
   uint8_t a = digitalRead(PEND_A);
   uint8_t b = digitalRead(PEND_B);
 
@@ -90,6 +94,34 @@ void pendulumEncoder_poll() {
   pend_count += QEM[index];
 
   prev_pendState = newState;
+}
+
+// Sets up a Renesas GPT timer to call pendulumEncoder_poll() at a fixed rate.
+// Needed because PEND_A/PEND_B (pins 7/8) are not attachInterrupt()-capable
+// on the UNO R4 (only pins 2/3 are), so we can't use pin-change interrupts
+// for this encoder like we do for the cart encoder.
+FspTimer pendTimer;
+
+bool beginPendulumTimer(float rateHz) {
+  uint8_t timerType = GPT_TIMER;
+  int8_t tIndex = FspTimer::get_available_timer(timerType);
+  if (tIndex < 0) tIndex = FspTimer::get_available_timer(timerType, true);
+  if (tIndex < 0) return false;
+
+  FspTimer::force_use_of_pwm_reserved_timer();
+
+  if (!pendTimer.begin(TIMER_MODE_PERIODIC, timerType, tIndex, rateHz, 0.0f, pendulumEncoder_poll)) return false;
+  // IMPORTANT: explicit low priority (15 = lowest on this core).
+  // FspTimer::setup_overflow_irq() defaults to priority 12, which is the
+  // SAME priority the R4's USB/Serial interrupt runs at. Equal-priority
+  // interrupts can't preempt each other, so a 10kHz timer at priority 12
+  // repeatedly contends with USB servicing and eventually starves it,
+  // causing exactly the "USB looks frozen" symptom. Priority 15 makes sure
+  // USB always wins that contention.
+  if (!pendTimer.setup_overflow_irq(15)) return false;
+  if (!pendTimer.open()) return false;
+  if (!pendTimer.start()) return false;
+  return true;
 }
 
 // Library Objects
@@ -121,12 +153,17 @@ bool readLineNonBlocking() {
 
 void setup() {
   Serial.begin(115200);
-  Serial.begin(115200);
-delay(1000);
-Serial.print("PIN_A interrupt#: ");  Serial.println(digitalPinToInterrupt(PIN_A));
-Serial.print("PIN_B interrupt#: ");  Serial.println(digitalPinToInterrupt(PIN_B));
-Serial.print("PEND_A interrupt#: "); Serial.println(digitalPinToInterrupt(PEND_A));
-Serial.print("PEND_B interrupt#: "); Serial.println(digitalPinToInterrupt(PEND_B));
+  // Default Serial timeout is 1000ms: if readBytesUntil() is called with a
+  // partial line already in the buffer (no '\n' yet), it will BLOCK for up
+  // to this long waiting for more bytes. During that block, nothing else in
+  // loop() runs. Keep this short so a partial/garbled line can't stall us.
+  Serial.setTimeout(5);
+
+  delay(100);
+  Serial.print("PIN_A interrupt#: ");  Serial.println(digitalPinToInterrupt(PIN_A));
+  Serial.print("PIN_B interrupt#: ");  Serial.println(digitalPinToInterrupt(PIN_B));
+  Serial.print("PEND_A interrupt#: "); Serial.println(digitalPinToInterrupt(PEND_A));
+  Serial.print("PEND_B interrupt#: "); Serial.println(digitalPinToInterrupt(PEND_B));
   // Wire.begin();
   // Wire.setClock(100000);       // stick to standard 100kHz — more noise-tolerant than 400kHz
   // Wire.setTimeout(50);         // ms; abort a stuck transaction instead of hanging indefinitely
@@ -145,14 +182,10 @@ Serial.print("PEND_B interrupt#: "); Serial.println(digitalPinToInterrupt(PEND_B
 
   attachInterrupt(digitalPinToInterrupt(PIN_A), encoderISR, CHANGE);
   attachInterrupt(digitalPinToInterrupt(PIN_B), encoderISR, CHANGE);
-  
 
-  // while (!magneticEncoder.isConnected()) {
-  //   digitalWrite(LED_BUILTIN, HIGH);
-  //   delay(100);
-  //   digitalWrite(LED_BUILTIN, LOW);
-  //   delay(900);
-  // }
+  if (!beginPendulumTimer(80000.0f)) {
+    Serial.println("PEND_TIMER_FAIL");
+  }
 
   bool ready = false;
 
@@ -178,7 +211,18 @@ Serial.print("PEND_B interrupt#: "); Serial.println(digitalPinToInterrupt(PEND_B
 }
 
 void loop() {
-  pendulumEncoder_poll();
+  // TEMPORARY DIAGNOSTIC: blink LED_BUILTIN every 250ms using only millis(),
+  // no Serial calls involved. If this keeps blinking during a "freeze", the
+  // CPU is alive and the real problem is Serial.print() blocking (e.g. your
+  // Python side not reading fast enough, filling the USB TX buffer). If this
+  // ALSO stops blinking, the CPU/ISR side has actually locked up. Remove once
+  // the freeze cause is confirmed.
+  static uint32_t lastBlink = 0;
+  if (millis() - lastBlink >= 250) {
+    lastBlink = millis();
+    digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
+  }
+  
   if (readLineNonBlocking()) {
     // Parse Motor Command (e.g., "M,150")
     if (inputBuffer[0] == 'M') {
@@ -194,36 +238,26 @@ void loop() {
       }
     }
 
-    // Parse Request for Data (e.g., "R")
-    // else if (inputBuffer[0] == 'R' && inputBuffer[1] == '\0') {
-    //   magAngle = magneticEncoder.readAngle();
+    else if (inputBuffer[0] == 'R' && inputBuffer[1] == '\0') {
 
-    //   // Send back: E,magAngle,rotaryCount\n
-    //   Serial.print("E,");
-    //   Serial.print(magAngle);
-    //   Serial.print(",");
-    //   Serial.println(enc_count);
-    // }
-  else if (inputBuffer[0] == 'R' && inputBuffer[1] == '\0') {
+      long currentPendCount;
+      long currentCartCount;
 
-  long currentPendCount;
-  long currentCartCount;
+      noInterrupts();
 
-  noInterrupts();
+      currentPendCount = pend_count;
+      currentCartCount = enc_count;
 
-  currentPendCount = pend_count;
-  currentCartCount = enc_count;
+      interrupts();
 
-  interrupts();
+      // Send back:
+      // E,pendulumCount,cartCount
 
-  // Send back:
-  // E,pendulumCount,cartCount
-
-  Serial.print("E,");
-  Serial.print(currentPendCount);
-  Serial.print(",");
-  Serial.println(currentCartCount);
-  }
+      Serial.print("E,");
+      Serial.print(currentPendCount);
+      Serial.print(",");
+      Serial.println(currentCartCount);
+    }
 
     // Reset arduino
     else if (strcmp(inputBuffer, "ST") == 0) {
