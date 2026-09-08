@@ -114,12 +114,12 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(PIN_A), encoderISR, CHANGE);
   attachInterrupt(digitalPinToInterrupt(PIN_B), encoderISR, CHANGE);
 
-  while (!magneticEncoder.isConnected()) {
-    digitalWrite(LED_BUILTIN, HIGH);
-    delay(100);
-    digitalWrite(LED_BUILTIN, LOW);
-    delay(900);
-  }
+  // while (!magneticEncoder.isConnected()) {
+  //   digitalWrite(LED_BUILTIN, HIGH);
+  //   delay(100);
+  //   digitalWrite(LED_BUILTIN, LOW);
+  //   delay(900);
+  // }
 
   bool ready = false;
 
