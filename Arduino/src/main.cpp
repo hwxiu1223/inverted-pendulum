@@ -37,22 +37,27 @@ activity. Fixed buffers use zero heap allocation, so this can run indefinitely.
 */
 
 #include <Arduino.h>
-#include <Wire.h>
 
 #include "BTS7960.h"
-#include "AS5600.h"
+// #include "AS5600.h"
 
 ////// PIN ASSIGNMENTS //////
 const uint8_t PIN_A = 2;
 const uint8_t PIN_B = 3;
 const uint8_t R_PWM = 5; // Arduino PWM output pin 5; connect to IBT-2 pin 1 (RPWM)
 const uint8_t L_PWM = 6; // Arduino PWM output pin 6; connect to IBT-2 pin 2 (LPWM)
+const uint8_t PEND_A = 7; //pend angle enc
+const uint8_t PEND_B = 8;
 const uint8_t L_EN = 10;
 const uint8_t R_EN = 9;
 
 volatile long enc_count = 0;
 volatile uint8_t enc_prevState = 0;
-volatile uint8_t magAngle = 0;
+// volatile uint8_t magAngle = 0;
+
+volatile long pend_count = 0;
+volatile uint8_t prev_pendState = 0;
+
 
 // index = (prevState<<2)|newState, each state is (A<<1)|B
 // 0 = invalid/no-motion transition, +1/-1 = valid step
@@ -63,7 +68,7 @@ static const int8_t QEM[16] = {
    0,  1, -1,  0
 };
 
-void encoderISR() {
+void encoderISR() { 
   uint8_t a = digitalRead(PIN_A);
   uint8_t b = digitalRead(PIN_B);
   uint8_t newState = (a << 1) | b;
@@ -72,9 +77,24 @@ void encoderISR() {
   enc_prevState = newState;
 }
 
+
+void pendulumEncoderISR() {
+
+  uint8_t a = digitalRead(PEND_A);
+  uint8_t b = digitalRead(PEND_B);
+
+  uint8_t newState = (a << 1) | b;
+
+  uint8_t index = (prev_pendState << 2) | newState;
+
+  pend_count += QEM[index];
+
+  prev_pendState = newState;
+}
+
 // Library Objects
 BTS7960 motorDriver(L_EN, R_EN, L_PWM, R_PWM);
-AS5600 magneticEncoder;
+// AS5600 magneticEncoder;
 
 ////// SERIAL PARSING BUFFER //////
 // Fixed-size buffer replaces Arduino String to avoid heap fragmentation.
@@ -101,18 +121,26 @@ bool readLineNonBlocking() {
 
 void setup() {
   Serial.begin(115200);
-  Wire.begin();
-  Wire.setClock(100000);       // stick to standard 100kHz — more noise-tolerant than 400kHz
-  Wire.setTimeout(50);         // ms; abort a stuck transaction instead of hanging indefinitely
+  // Wire.begin();
+  // Wire.setClock(100000);       // stick to standard 100kHz — more noise-tolerant than 400kHz
+  // Wire.setTimeout(50);         // ms; abort a stuck transaction instead of hanging indefinitely
   motorDriver.Enable();
-  magneticEncoder.begin();
+  // magneticEncoder.begin();
 
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(PIN_A, INPUT_PULLUP);
   pinMode(PIN_B, INPUT_PULLUP);
+  pinMode(PEND_A, INPUT_PULLUP);
+  pinMode(PEND_B, INPUT_PULLUP);
+  uint8_t pendA = digitalRead(PEND_A);
+  uint8_t pendB = digitalRead(PEND_B);
+  prev_pendState = (pendA << 1) | pendB;
+
 
   attachInterrupt(digitalPinToInterrupt(PIN_A), encoderISR, CHANGE);
   attachInterrupt(digitalPinToInterrupt(PIN_B), encoderISR, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(PEND_A), pendulumEncoderISR, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(PEND_B), pendulumEncoderISR, CHANGE);
 
   // while (!magneticEncoder.isConnected()) {
   //   digitalWrite(LED_BUILTIN, HIGH);
@@ -161,15 +189,35 @@ void loop() {
     }
 
     // Parse Request for Data (e.g., "R")
-    else if (inputBuffer[0] == 'R' && inputBuffer[1] == '\0') {
-      magAngle = magneticEncoder.readAngle();
+    // else if (inputBuffer[0] == 'R' && inputBuffer[1] == '\0') {
+    //   magAngle = magneticEncoder.readAngle();
 
-      // Send back: E,magAngle,rotaryCount\n
-      Serial.print("E,");
-      Serial.print(magAngle);
-      Serial.print(",");
-      Serial.println(enc_count);
-    }
+    //   // Send back: E,magAngle,rotaryCount\n
+    //   Serial.print("E,");
+    //   Serial.print(magAngle);
+    //   Serial.print(",");
+    //   Serial.println(enc_count);
+    // }
+  else if (inputBuffer[0] == 'R' && inputBuffer[1] == '\0') {
+
+  long currentPendCount;
+  long currentCartCount;
+
+  noInterrupts();
+
+  currentPendCount = pend_count;
+  currentCartCount = enc_count;
+
+  interrupts();
+
+  // Send back:
+  // E,pendulumCount,cartCount
+
+  Serial.print("E,");
+  Serial.print(currentPendCount);
+  Serial.print(",");
+  Serial.println(currentCartCount);
+  }
 
     // Reset arduino
     else if (strcmp(inputBuffer, "ST") == 0) {
