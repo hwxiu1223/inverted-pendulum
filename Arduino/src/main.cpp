@@ -43,12 +43,12 @@ activity. Fixed buffers use zero heap allocation, so this can run indefinitely.
 // #include "AS5600.h"
 
 ////// PIN ASSIGNMENTS //////
-const uint8_t PIN_A = 2;
-const uint8_t PIN_B = 3;
+const uint8_t PEND_A = 2;
+const uint8_t PEND_B = 3;
 const uint8_t R_PWM = 5; // Arduino PWM output pin 5; connect to IBT-2 pin 1 (RPWM)
 const uint8_t L_PWM = 6; // Arduino PWM output pin 6; connect to IBT-2 pin 2 (LPWM)
-const uint8_t PEND_A = 7; //pend angle enc
-const uint8_t PEND_B = 8;
+const uint8_t PIN_A = 7; //pend angle enc
+const uint8_t PIN_B = 8;
 const uint8_t L_EN = 10;
 const uint8_t R_EN = 9;
 
