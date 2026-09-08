@@ -2,6 +2,7 @@
 import time
 import os
 import Python.simulation.constants as constants
+from Python.simulation.lqg_controller import wrap_to_pi
 from config import COM_PORT
 
 AS5600_RAW_TO_RADIANS, AS5600_RAW_TO_DEGREES = constants.AS5600_RAW_TO_RADIANS, constants.AS5600_RAW_TO_DEGREES
@@ -70,7 +71,43 @@ class CartControl:
                     except ValueError:
                         pass
         return None, None
-                
+
+    def read_state(self, mag_val=None, rotary_val=None):
+        """Convert raw encoder counts into the physical units the simulation
+        and LQG controller work in: (x, theta) in meters and radians.
+
+        Pass in already-read (mag_val, rotary_val) to avoid a redundant
+        serial round-trip when the caller already has a fresh reading
+        (e.g. inside the real-time control loop); otherwise this reads the
+        encoders itself.
+
+        Returns (x, theta, mag_val, rotary_val), or (None, None, None, None)
+        if the encoders couldn't be read.
+        """
+        if mag_val is None or rotary_val is None:
+            mag_val, rotary_val = self.read_encoders()
+
+        if mag_val is None or rotary_val is None:
+            return None, None, None, None
+
+        theta = wrap_to_pi((mag_val - constants.AS5600_ZERO_RAW) * constants.AS5600_RAW_TO_RADIANS)
+        x = (rotary_val - constants.ROTARY_CENTER) * constants.METERS_PER_COUNT
+
+        return x, theta, mag_val, rotary_val
+
+    def enforce_limits(self, motor_val, rotary_val):
+        """Cut motor command to zero if the soft-lock is engaged and the
+        cart is being driven further past its end-of-travel encoder count."""
+        if self.locked and ((motor_val > 0 and rotary_val < 3000) or (motor_val < 0 and rotary_val > 57000)):
+            return 0
+        return motor_val
+
+    def force_to_motor(self, u):
+        """Map a controller force command u (N, in [-u_max, u_max]) to the
+        integer [-255, 255] motor command."""
+        motor_val = constants.MOTOR_SIGN * (u / constants.u_max) * constants.MOTOR_MAX
+        motor_val = max(min(motor_val, constants.MOTOR_MAX), -constants.MOTOR_MAX)
+        return motor_val
 
     def run_step(self, speed):
         mag_val, rotary_val = self.read_encoders()
@@ -82,9 +119,8 @@ class CartControl:
                 self.last_mag_val = mag_val
                 self.last_rotary_val = rotary_val
 
-            if self.locked and ((speed > 0 and rotary_val < 3000) or (speed < 0 and rotary_val > 57000)):
-                speed = 0
-            
+            speed = self.enforce_limits(speed, rotary_val)
+
             self.set_motor(speed)
             if speed != self.last_speed_val:
                 print("Set motor: ", speed)

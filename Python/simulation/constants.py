@@ -37,3 +37,44 @@ sigma_theta = 1e-2   # pendulum angle encoder noise, 1-sigma (rad) ~0.57 deg
 # of the (unmeasured) velocity states between samples
 q_dx = 1e-4       # process noise on cart velocity state
 q_dtheta = 1e-3   # process noise on pendulum angular velocity state
+
+# ---------------------------------------------------------------------------
+# hardware encoder calibration
+# ---------------------------------------------------------------------------
+# AS5600 magnetic encoder on the pendulum pivot: 12-bit, 0-4095 raw counts
+# per revolution.
+AS5600_COUNTS_PER_REV = 4096
+AS5600_RAW_TO_RADIANS = (2 * math.pi) / AS5600_COUNTS_PER_REV
+AS5600_RAW_TO_DEGREES = 360.0 / AS5600_COUNTS_PER_REV
+
+# Raw AS5600 reading when the pendulum hangs straight down at rest, which is
+# theta = 0 in the sim/controller convention (theta = pi is the upright
+# balance point). TODO: calibrate on your hardware -- let the pendulum hang
+# freely, call cart.read_encoders(), and set this to the mag_val you get.
+AS5600_ZERO_RAW = 0
+
+# Rotary (cart position) encoder: quadrature counts per revolution of the
+# pulley/belt shaft. TODO: verify against your actual encoder's spec.
+ROTARY_COUNTS_PER_REV = 4096
+
+# Raw rotary count corresponding to x = 0 (rail center). center_cart()
+# already homes to this value, so it doubles as the position zero-reference.
+ROTARY_CENTER = 30000
+
+# Meters of cart travel per encoder count, derived from the belt/pulley
+# radius. TODO: verify against your actual pulley/encoder mounting -- this
+# assumes one shaft revolution = one belt revolution (2*pi*r_belt of travel).
+METERS_PER_COUNT = (2 * math.pi * r_belt) / ROTARY_COUNTS_PER_REV
+
+# ---------------------------------------------------------------------------
+# motor command mapping
+# ---------------------------------------------------------------------------
+# hybrid_controller_lqg outputs a force command u in [-u_max, u_max] (N).
+# The Arduino motor driver takes an integer command in [-255, 255].
+MOTOR_MAX = 255
+
+# +u (positive force) maps to a *negative* motor command on this hardware.
+# Flip this to +1 if your wiring/motor direction is the other way -- an easy
+# way to check is: command a small positive motor value and confirm the cart
+# moves in the +x direction (toward x_max).
+MOTOR_SIGN = -1
