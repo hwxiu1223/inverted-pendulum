@@ -11,8 +11,8 @@
 <nav>
   <a href="#overview">Overview</a>
   <a href="#demo">Live Demo</a>
-  <a href="#technical">The Meat and Potatoes</a>
-  <a href="#results">The Final Prototype</a>
+  <a href="#technical">Technical Details</a>
+  <a href="#results">Results</a>
 </nav>
 
 <section id="hero">
@@ -23,15 +23,12 @@
 <section id="overview">
   <h2>Overview</h2>
   <p>Earlier this year (2026), my friend shared with me an Instagram reel of a triple inverted pendulum
-    balancing itself on a cart. It included the equations of motion for the system, a massive list of
-    hieroglyphics that neither of us could come close to comprehending, but it seemed like it might be
+    balancing itself on a cart. It included the equations of motion for the system, a massive bulk of
+    math that neither of us could come close to comprehending, but it seemed like it might be
     interesting to work towards. So, over the last couple of months, he and I, along with a couple other
     friends, have been doing exactly that: working on solving a single inverted pendulum, a classic
     control systems problem, as a stepping stone toward eventually solving the triple inverted pendulum.
-    And, after a lot of trial, error, and procrastination, we can say with confidence that we are not ready
-    for a triple inverted pendulum, and that perhaps a change in majors is due. However, we did
-    manage to get a single inverted pendulum to balance itself on a cart, and this website documents our work,
-    showing particularly what not to do to get this pendulum upright. </p>
+    This website documents our work, showing exactly what not to do to get a pendulum on a cart upright. </p>
 </section>
 
 <section id="demo">
@@ -39,7 +36,7 @@
   <p>The simulation below runs the same nonlinear cart-pole equations, physical parameters, and
     hybrid swing-up / LQR controller as our MATLAB model. Drag the orange mass to set the pendulum's
     starting angle, then let go and watch the controller take it from there. Drag anywhere else on the
-    cart to give it a shove and see the controller fight back. Please. I spent a lot of time on it.</p>
+    cart to give it a shove and see the controller fight back.</p>
 
 <div id="stage">
     <canvas id="canvas" width="640" height="360"></canvas>
@@ -55,7 +52,7 @@
     <!-- === NEW GRAPH CANVAS END === -->
 
     <div class="controls">
-      <button class="primary" id="disturbBtn">Give it a nudge</button>
+      <button class="primary" id="disturbBtn">Nudge</button>
       <button id="resetBtn">Reset</button>
       <button id="controllerBtn">Controller: ON</button>
     </div>
@@ -68,14 +65,43 @@
   </div>
 
 <section id="technical">
-  <h2>The Meat and Potatoes</h2>
-  <p>Describe your control strategy here &mdash; PID, LQR, state-space feedback, or whatever
-     you used on the physical build. Include your governing equations, sensor setup
-     (encoders, IMU), and actuator (motor/driver) details.</p>
+  <h2>Technical Details</h2>
+  <p>To balance our inverted pendulum, we used an energy-based swing-up controller to bring the pendulum close
+    to the upright position, where the LQR controller would take over. We will explain how LQR and LQG works later in
+    this section, but if you want more information about control systems with much better explanations
+    than we can provide, we recommend <a href="https://www.youtube.com/playlist?list=PLMrJAkhIeNNR20Mz-VpzgfQs5zrYi085m" target="_blank">
+    this youtube course,</a> by Dr. Brunton at the University of Washington. This video series was a huge help to us
+    when programming everything on the MATLAB side, and his entire playlist is very digestible and fun to follow.
+    If you ever want to get into control systems, this is the playlist to start with in our opinion.
+    
+    <p></p>Now, starting the process, we first need to derive the equations of motion for our system. 
+    This can get a little complicated, and could potentially require a much higher level of
+    math and physics knowledge, but you can also find the equations of motion through some free body diagrams and algebra.
+    We will show both the Lagrangian and Newtonian approaches here, so feel free to expand whichever
+    method is more comfortable for you. The Lagrangian approach is more elegant, but the Newtonian 
+    approach is much more accessible for anyone with a decent understanding of physics.
+    
+    <p></p>Lagrangian Approach:
+    <ul>
+      <li>Define the kinetic and potential energy of the system.</li>
+      <li>Use the Lagrangian, which is the difference between kinetic and potential energy, to derive the equations of motion.</li>
+      <li>Apply the Euler-Lagrange equation to obtain the equations of motion.</li>
+    </ul>
+    <p></p>Newtonian Approach:
+    <ul>
+      <li>Draw free body diagrams for the cart and pendulum.</li>
+      <li>Apply Newton's second law (F=ma) to each component of the system.</li>
+      <li>Combine the equations to derive the equations of motion.</li>
+    </ul>
+
+
+
+
+  .</p>
 </section>
 
 <section id="results">
-  <h2>The Final Prototype</h2>
+  <h2>Results</h2>
   <p>Add plots of angle vs. time, settling time, or video of the physical pendulum
      being balanced here.</p>
 </section>
