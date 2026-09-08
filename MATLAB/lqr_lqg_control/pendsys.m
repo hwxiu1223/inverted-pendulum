@@ -5,8 +5,8 @@ function params = pendsys(params)
 
     % constants
     params.g = -9.81; % gravitational acceleration (m/s^2)
-    params.L = .132;  % length of the pendulum (m) length of paint stick is 30.79cm
-    params.m = .015;  % mass of the pendulum (kg) Mass of pendulum W/o drill holl
+    params.L = .147;  % length of the pendulum (m) length of paint stick is 30.79cm
+    params.m = .022;  % mass of the pendulum (kg) Mass of pendulum W/o drill holl
     params.M = .100; % mass of the cart (kg) Mass of cart, encoder, screws, ball bearings, and nuts
     params.W = .0381;  % cart width (m)
     params.H = .05; % cart height (m)
