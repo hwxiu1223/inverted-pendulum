@@ -1,6 +1,7 @@
 import numpy as np
-import Python.simulation.constants as constants
-from Python.simulation.dynamics import cartpend
+
+from simulation import constants
+from simulation.dynamics import cartpend
 
 
 def wrap_to_pi(theta):

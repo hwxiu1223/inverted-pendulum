@@ -1,8 +1,10 @@
 import os
+import sys
 import time
+
 import keyboard
 import serial
-import sys
+
 from config import COM_PORT
 from cart_control import CartControl
 

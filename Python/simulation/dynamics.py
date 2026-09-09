@@ -1,5 +1,6 @@
-import Python.simulation.constants as constants
 import numpy as np
+
+from simulation import constants
 
 g, L, m, M, W, H, wr, mr, d, b, cd_cart, cd_pend = (
     constants.g, constants.L, constants.m, constants.M, constants.W, constants.H,

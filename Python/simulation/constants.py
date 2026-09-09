@@ -3,17 +3,17 @@ import math
 
 # simulation constants
 g = -9.81            # gravitational acceleration (m/s^2)
-L = .132             # length of the pendulum (m)
-m = .015             # mass of the pendulum (kg)
-M = .100             # mass of the cart (kg)
+L = .147             # length of the pendulum (m)
+m = .022             # mass of the pendulum (kg)
+M = .099             # mass of the cart (kg)
 W = .0381            # cart width (m)
 H = .05              # cart height (m)
 wr = .015            # wheel radius (m)
 mr = .015            # mass radius (m)
-d = 5e-4             # damping coeff
-b = 1e-6             # pendulum pivot/bearing friction (N*m*s/rad)
-cd_cart = 1e-4       # cart aerodynamic drag coeff, quadratic in v (N*s^2/m^2)
-cd_pend = 1e-6       # pendulum aerodynamic drag coeff, quadratic in w (N*m*s^2/rad^2)
+d = 5e-5             # damping coeff
+b = 1e-7             # pendulum pivot/bearing friction (N*m*s/rad)
+cd_cart = 1e-5       # cart aerodynamic drag coeff, quadratic in v (N*s^2/m^2)
+cd_pend = 1e-7       # pendulum aerodynamic drag coeff, quadratic in w (N*m*s^2/rad^2)
 
 # motor / drive constants
 r_belt = 0.006                              # belt/pulley drive radius (m)
@@ -41,21 +41,26 @@ q_dtheta = 1e-3   # process noise on pendulum angular velocity state
 # ---------------------------------------------------------------------------
 # hardware encoder calibration
 # ---------------------------------------------------------------------------
-# AS5600 magnetic encoder on the pendulum pivot: 12-bit, 0-4095 raw counts
-# per revolution.
-AS5600_COUNTS_PER_REV = 4096
-AS5600_RAW_TO_RADIANS = (2 * math.pi) / AS5600_COUNTS_PER_REV
-AS5600_RAW_TO_DEGREES = 360.0 / AS5600_COUNTS_PER_REV
+# Rotary encoder on the pendulum pivot: 2400 raw counts per revolution.
+# 0 = pendulum hanging straight down, 1200 = pendulum straight up, and the
+# count increases turning clockwise. That maps directly onto the sim's
+# theta convention (theta = 0 hanging down, theta = pi upright) with no
+# extra offset or sign flip needed.
+PENDULUM_COUNTS_PER_REV = 2400
+PENDULUM_RAW_TO_RADIANS = (2 * math.pi) / PENDULUM_COUNTS_PER_REV
+PENDULUM_RAW_TO_DEGREES = 360.0 / PENDULUM_COUNTS_PER_REV
 
-# Raw AS5600 reading when the pendulum hangs straight down at rest, which is
-# theta = 0 in the sim/controller convention (theta = pi is the upright
-# balance point). TODO: calibrate on your hardware -- let the pendulum hang
-# freely, call cart.read_encoders(), and set this to the mag_val you get.
-AS5600_ZERO_RAW = 0
+# Raw count when the pendulum hangs straight down at rest (theta = 0).
+# Given directly by the encoder's own zero point, so no calibration TODO.
+PENDULUM_ZERO_RAW = 2400
+
+# The raw count itself is wrapped into [0, PENDULUM_COUNTS_PER_REV) in
+# CartControl.read_encoders(), so a rollover past 2400 (or below 0) never
+# shows up as a huge jump -- it just continues counting from the other end.
 
 # Rotary (cart position) encoder: quadrature counts per revolution of the
 # pulley/belt shaft. TODO: verify against your actual encoder's spec.
-ROTARY_COUNTS_PER_REV = 4096
+ROTARY_COUNTS_PER_REV = 2400
 
 # Raw rotary count corresponding to x = 0 (rail center). center_cart()
 # already homes to this value, so it doubles as the position zero-reference.
@@ -64,7 +69,7 @@ ROTARY_CENTER = 30000
 # Meters of cart travel per encoder count, derived from the belt/pulley
 # radius. TODO: verify against your actual pulley/encoder mounting -- this
 # assumes one shaft revolution = one belt revolution (2*pi*r_belt of travel).
-METERS_PER_COUNT = (2 * math.pi * r_belt) / ROTARY_COUNTS_PER_REV
+METERS_PER_COUNT = 1.02 / 60000 
 
 # ---------------------------------------------------------------------------
 # motor command mapping
@@ -73,8 +78,9 @@ METERS_PER_COUNT = (2 * math.pi * r_belt) / ROTARY_COUNTS_PER_REV
 # The Arduino motor driver takes an integer command in [-255, 255].
 MOTOR_MAX = 255
 
-# +u (positive force) maps to a *negative* motor command on this hardware.
-# Flip this to +1 if your wiring/motor direction is the other way -- an easy
-# way to check is: command a small positive motor value and confirm the cart
-# moves in the +x direction (toward x_max).
+# Hardware convention: max positive u -> motor command -255, max negative
+# u -> motor command +255. That's MOTOR_SIGN = -1 below. Flip to +1 if your
+# wiring/motor direction is the other way -- an easy way to check is:
+# command a small positive motor value and confirm the cart moves in the
+# +x direction (toward x_max).
 MOTOR_SIGN = -1

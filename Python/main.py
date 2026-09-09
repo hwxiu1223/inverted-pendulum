@@ -1,15 +1,16 @@
 import os
-import time
-import keyboard
-import serial
 import sys
-import numpy as np
+import time
+
 import control
+import keyboard
+import numpy as np
+import serial
 
 from config import COM_PORT
 from cart_control import CartControl
-import Python.simulation.constants as constants
-from Python.simulation.lqg_controller import hybrid_controller_lqg
+from simulation import constants
+from simulation.lqg_controller import hybrid_controller_lqg
 
 enc_count_file = os.path.join(os.path.dirname(__file__), "enc_counts.txt")
 

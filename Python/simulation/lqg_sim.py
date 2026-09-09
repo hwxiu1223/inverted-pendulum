@@ -1,9 +1,10 @@
 import control
-import numpy as np
 import matplotlib.pyplot as plt
-import Python.simulation.constants as constants
-from Python.simulation.dynamics import cartpend
-from Python.simulation.lqg_controller import hybrid_controller_lqg
+import numpy as np
+
+from simulation import constants
+from simulation.dynamics import cartpend
+from simulation.lqg_controller import hybrid_controller_lqg
 
 g = constants.g
 L = constants.L

@@ -1,11 +1,10 @@
 # cart_control.py
-import time
 import os
-import Python.simulation.constants as constants
-from Python.simulation.lqg_controller import wrap_to_pi
-from config import COM_PORT
+import time
 
-AS5600_RAW_TO_RADIANS, AS5600_RAW_TO_DEGREES = constants.AS5600_RAW_TO_RADIANS, constants.AS5600_RAW_TO_DEGREES
+from config import COM_PORT
+from simulation import constants
+from simulation.lqg_controller import wrap_to_pi
 
 class CartControl:
     def __init__(self, ser, enc_count_file):
@@ -65,8 +64,11 @@ class CartControl:
                 part = line.split(',')
                 if len(part) == 3:
                     try:
+                        # raw_mag_val = int(part[1])
                         mag_val = int(part[1])
                         rotary_val = int(part[2])
+                        # if raw_mag_val != mag_val:
+                        #     print(f"DEBUG: raw pendulum count {raw_mag_val} wrapped to {mag_val}")
                         return mag_val, rotary_val
                     except ValueError:
                         pass
@@ -90,7 +92,7 @@ class CartControl:
         if mag_val is None or rotary_val is None:
             return None, None, None, None
 
-        theta = wrap_to_pi((mag_val - constants.AS5600_ZERO_RAW) * constants.AS5600_RAW_TO_RADIANS)
+        theta = wrap_to_pi((mag_val - constants.PENDULUM_ZERO_RAW) * constants.PENDULUM_RAW_TO_RADIANS)
         x = (rotary_val - constants.ROTARY_CENTER) * constants.METERS_PER_COUNT
 
         return x, theta, mag_val, rotary_val
@@ -114,8 +116,8 @@ class CartControl:
 
         if mag_val is not None and rotary_val is not None:
             if mag_val != self.last_mag_val or rotary_val != self.last_rotary_val:
-                print("MAG: raw-", mag_val, " rad-", mag_val * AS5600_RAW_TO_RADIANS,
-                      " deg-", mag_val * AS5600_RAW_TO_DEGREES, ", ROTARY: ", rotary_val)
+                print("MAG: raw-", mag_val, " rad-", mag_val * constants.PENDULUM_RAW_TO_RADIANS,
+                      " deg-", mag_val * constants.PENDULUM_RAW_TO_DEGREES, ", ROTARY: ", rotary_val)
                 self.last_mag_val = mag_val
                 self.last_rotary_val = rotary_val
 
