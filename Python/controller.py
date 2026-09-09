@@ -1,9 +1,9 @@
 import control
 import numpy as np
-import Python.simulation.constants as constants
+import constants
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
-from Python.simulation.dynamics import cartpend
+from dynamics import cartpend
 
 g, L, m, M, W, H, wr, mr, d, b, cd_cart, cd_pend, u_max, v_max, x_min, x_max, x_margin, k_wall, c_wall = (
     constants.g, constants.L, constants.m, constants.M, constants.W, constants.H,
