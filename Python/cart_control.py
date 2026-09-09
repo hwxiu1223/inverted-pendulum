@@ -1,7 +1,7 @@
 # cart_control.py
 import time
 import os
-import constants
+import Python.simulation.constants as constants
 from config import COM_PORT
 
 AS5600_RAW_TO_RADIANS, AS5600_RAW_TO_DEGREES = constants.AS5600_RAW_TO_RADIANS, constants.AS5600_RAW_TO_DEGREES
