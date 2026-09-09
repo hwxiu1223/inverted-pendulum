@@ -24,6 +24,8 @@ def key_just_pressed(key):
     key_state[key] = is_down
     return is_down and not was_down
 
+
+
 while True:
     if keyboard.is_pressed('right'):
         cart.set_motor(-255)

@@ -97,6 +97,7 @@ def control_step():
     global xhat, t_sim, last_step_time
 
     x, theta, mag_val, rotary_val = cart.read_state()
+    print("PEND: ", mag_val, ", CART: ", rotary_val)
 
     if x is None:
         print("!! Unable to get encoder data, stopping motor !!")
@@ -117,6 +118,7 @@ def control_step():
     motor_val = cart.force_to_motor(u)
     motor_val = cart.enforce_limits(motor_val, rotary_val)
     cart.set_motor(motor_val)
+    print("Set motor: ", motor_val)
 
 
 while True:
