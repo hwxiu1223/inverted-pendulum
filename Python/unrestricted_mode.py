@@ -9,10 +9,13 @@ from config import COM_PORT
 from cart_control import CartControl
 
 enc_count_file = os.path.join(os.path.dirname(__file__), "enc_counts.txt")
+log_file = os.path.join(os.path.dirname(__file__), "unres.txt")
 
 ser = serial.Serial(COM_PORT, 115200, timeout=1)
 cart = CartControl(ser, enc_count_file)
 cart.locked = False
+
+log = open(log_file, "a", buffering=1)
 
 enc_count = cart.handshake()
 print("Loaded saved encoder count:", enc_count)
@@ -36,3 +39,7 @@ while True:
     mag_val, rotary_val = cart.read_encoders()
     if mag_val is not None and rotary_val is not None:
         print("MAG: raw-", mag_val, ", ROTARY: ", rotary_val)
+
+    # log.write(
+    #     f" PEND: {mag_val}, CART: {rotary_val}\n"
+    # )

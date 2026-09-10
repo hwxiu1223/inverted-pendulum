@@ -19,7 +19,7 @@ cd_pend = 1e-7       # pendulum aerodynamic drag coeff, quadratic in w (N*m*s^2/
 r_belt = 0.006                              # belt/pulley drive radius (m)
 rpm_max = 1000                               # motor rated speed (RPM)
 tau_rated = 0.15 * 9.80665 * 0.01           # kgf*cm -> N*m (0.15 kgf*cm = 0.01471 N*m)
-u_max = 2.55                                 # rated continuous force ceiling (N) ~= 2.45 N (tau_rated / r_belt)
+u_max = 0.6                                 # rated continuous force ceiling (N) ~= 2.45 N (tau_rated / r_belt)
 v_max = (2 * math.pi * rpm_max / 60) * r_belt  # max cart speed at rated RPM (m/s) ~= 0.628 m/s
 
 # rail / soft-limit constants

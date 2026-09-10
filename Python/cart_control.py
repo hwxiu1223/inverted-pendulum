@@ -46,7 +46,7 @@ class CartControl:
                 print("Sending: ", f"RET, {saved_enc_count}")
             elif response == 'REC':
                 break
-            time.sleep(0.1)
+            time.sleep(0.5)
         return saved_enc_count
     
 
@@ -191,15 +191,15 @@ class CartControl:
                 return None
 
             error = rot_val - 30000
-            if abs(error) <= 10:
+            if abs(error) <= 100:
                 break
 
             if abs(error) > 2000:
                 speed = 255 if error > 0 else -255
             else:
                 speed = (255 / 2000) * error
-                if abs(speed) < 40:
-                    speed = 40 if speed > 0 else -40
+                if abs(speed) < 50:
+                    speed = 50 if speed > 0 else -50
 
             self.set_motor(speed)
             time.sleep(0.01)

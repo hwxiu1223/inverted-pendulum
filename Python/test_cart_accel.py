@@ -171,7 +171,7 @@ def find_deadband(cart, pwm_lo=10, pwm_hi=120, step=5, probe_s=0.3,
           f"(assumed DEADBAND={constants.DEADBAND})...")
     found = None
     for pwm in range(pwm_lo, pwm_hi + 1, step):
-        # cart.center_cart()
+        cart.center_cart()
         time.sleep(0.2)
         t, x = collect_pulse(cart, pwm, probe_s)
         cart.set_motor(0)
@@ -270,6 +270,8 @@ def main():
         print("\nInterrupted by user.")
     finally:
         cart.set_motor(0)
+        cart.save_enc_val()
+        cart.reset_arduino()    
         ser.close()
         print("Motor stopped, serial port closed.")
 
