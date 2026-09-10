@@ -49,10 +49,10 @@ C = np.array([
 Q = np.array([
     [200, 0, 0, 0],
     [0, 0, 0, 0],
-    [0, 0, 1000, 0],
+    [0, 0, 300, 0],
     [0, 0, 0, 0],
 ])
-R = np.array([[0.01]])
+R = np.array([[0.05]])
 K, _, _ = control.lqr(A, B, Q, R)
 K = np.asarray(K).flatten()
 

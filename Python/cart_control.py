@@ -106,7 +106,7 @@ class CartControl:
         if mag_val is None or rotary_val is None:
             return None, None, None, None
 
-        theta = wrap_to_pi((mag_val - constants.PENDULUM_ZERO_RAW) * constants.PENDULUM_RAW_TO_RADIANS)
+        theta = wrap_to_pi(-(mag_val - constants.PENDULUM_ZERO_RAW) * constants.PENDULUM_RAW_TO_RADIANS)
         x = (rotary_val - constants.ROTARY_CENTER) * constants.METERS_PER_COUNT
 
         return x, theta, mag_val, rotary_val
