@@ -167,6 +167,8 @@ while True:
             cart.save_enc_val()
     
     if key_just_pressed('m'):
+        print("Centering.....................")
+        time.sleep(1)
         cart.center_cart()
     
     if key_just_pressed('r'):

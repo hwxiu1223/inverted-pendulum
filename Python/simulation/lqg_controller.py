@@ -55,9 +55,10 @@ def hybrid_controller_lqg(t, xhat, y_meas, K, L_gain, A, B, C, dt):
         else:
             # swing-up law
             g_mag = abs(constants.g)
+            # lqg_controller.py, inside hybrid_controller_lqg's swing-up branch
             E = 0.5 * J * xhat[3]**2 - constants.m * g_mag * constants.L * np.cos(theta_hat)
-            E_target = constants.m * g_mag * constants.L
-            ke = 24.0
+            E_target = 1.3 * constants.m * g_mag * constants.L   # <-- was 1.0Γ—        
+            ke = 30.0
             kv = 0.2
             u = ke * (E - E_target) * xhat[3] * np.cos(theta_hat) - kv * xhat[1]
 
@@ -79,6 +80,8 @@ def hybrid_controller_lqg(t, xhat, y_meas, K, L_gain, A, B, C, dt):
 
     # kalman filter update using a simple forward-Euler step of length dt
     dxhat_nonlin = cartpend(xhat, u)
-    xhat_next = xhat + dt * dxhat_nonlin + dt * (L_gain @ (y_meas - C @ xhat))
+    innovation = y_meas - C @ xhat
+    innovation[1] = wrap_to_pi(innovation[1])   # measured theta is wrapped; xhat[2] isn't
+    xhat_next = xhat + dt * dxhat_nonlin + dt * (L_gain @ innovation)
 
     return u, xhat_next

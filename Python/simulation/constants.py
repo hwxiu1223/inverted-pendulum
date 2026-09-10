@@ -10,8 +10,8 @@ W = .0381            # cart width (m)
 H = .05              # cart height (m)
 wr = .015            # wheel radius (m)
 mr = .015            # mass radius (m)
-d = 5e-5             # damping coeff
-b = 1e-7             # pendulum pivot/bearing friction (N*m*s/rad)
+d = 5e-4             # damping coeff
+b = 2.35e-4          # pendulum pivot/bearing friction (N*m*s/rad)
 cd_cart = 1e-5       # cart aerodynamic drag coeff, quadratic in v (N*s^2/m^2)
 cd_pend = 1e-7       # pendulum aerodynamic drag coeff, quadratic in w (N*m*s^2/rad^2)
 

@@ -78,7 +78,7 @@ class CartControl:
                         part = line.split(',')
                         if len(part) == 3:
                             try:
-                                mag_val = int(part[1])
+                                mag_val = int(part[1]) % constants.PENDULUM_COUNTS_PER_REV
                                 rotary_val = int(part[2])
                                 return mag_val, rotary_val
                             except ValueError:
