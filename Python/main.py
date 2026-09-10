@@ -13,9 +13,14 @@ from simulation import constants
 from simulation.lqg_controller import hybrid_controller_lqg
 
 enc_count_file = os.path.join(os.path.dirname(__file__), "enc_counts.txt")
+log_file = os.path.join(os.path.dirname(__file__), "log.txt")
 
 ser = serial.Serial(COM_PORT, 115200, timeout=1)
 cart = CartControl(ser, enc_count_file)
+
+# Line-buffered so entries hit disk immediately rather than sitting in a
+# buffer if the process exits abnormally (e.g. Ctrl+C instead of 'space').
+log = open(log_file, "a", buffering=1)
 
 enc_count = cart.handshake()
 print("Loaded saved encoder count:", enc_count)
@@ -65,6 +70,13 @@ xhat = np.zeros(4)
 t_sim = 0.0
 last_step_time = None
 
+# Upper bound on dt fed into the forward-Euler estimator update. The offline
+# sim (and therefore the LQE gain L_gain) is tuned around a fixed dt of
+# ~0.002-0.02s; a stall (dropped serial frame, OS scheduling hiccup, etc.)
+# can otherwise produce a dt 100-1000x larger, which blows up xhat in one
+# step and shows up as a jitter/kick in the motor command.
+MAX_DT = 0.05
+
 key_state = {}
 control_active = False
 
@@ -97,19 +109,33 @@ def control_step():
     global xhat, t_sim, last_step_time
 
     x, theta, mag_val, rotary_val = cart.read_state()
-    print("PEND: ", mag_val, ", CART: ", rotary_val)
+    now = time.time()
 
     if x is None:
-        print("!! Unable to get encoder data, stopping motor !!")
+        msg = "!! Unable to get encoder data, stopping motor !!"
+        print(msg)
+        log.write(f"{now:.3f} {msg}\n")
         cart.set_motor(0)
+        # Refresh the timestamp even on a failed read so a stale
+        # last_step_time doesn't compound into a huge dt on the next
+        # successful step.
+        last_step_time = now
         return
 
-    now = time.time()
     dt = (now - last_step_time) if last_step_time else 0.0
     last_step_time = now
 
     if dt <= 0:
         return
+
+    # Guard against stalls (serial hiccup, OS scheduling delay, etc.)
+    # producing a dt far larger than the estimator was tuned for, which
+    # would otherwise blow up xhat in a single forward-Euler step.
+    if dt > MAX_DT:
+        msg = f"!! dt={dt:.3f}s exceeds MAX_DT={MAX_DT}s, clamping !!"
+        print(msg)
+        log.write(f"{now:.3f} {msg}\n")
+        dt = MAX_DT
 
     y_meas = np.array([x, theta])
     u, xhat = hybrid_controller_lqg(t_sim, xhat, y_meas, K, L_gain, A, B, C, dt)
@@ -118,7 +144,10 @@ def control_step():
     motor_val = cart.force_to_motor(u)
     motor_val = cart.enforce_limits(motor_val, rotary_val)
     cart.set_motor(motor_val)
-    print("Set motor: ", motor_val)
+    print("u val", u, ", Motor: ", motor_val, ", PEND: ", mag_val, ", CART: ", rotary_val)
+    log.write(
+        f"{now:.3f} u val {u}, Motor: {motor_val}, PEND: {mag_val}, CART: {rotary_val}\n"
+    )
 
 
 while True:
@@ -153,6 +182,7 @@ while True:
 
         cart.reset_arduino()
         time.sleep(1)
-    
+
+        log.close()
         sys.exit()
         break

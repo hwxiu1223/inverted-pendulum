@@ -14,6 +14,12 @@ class CartControl:
       self.last_mag_val = None
       self.last_rotary_val = None
       self.last_speed_val = 0
+      # read_encoders() below enforces its own hard wall-clock deadline via
+      # in_waiting polling, so the port itself should never block waiting
+      # for a newline. A near-zero timeout makes any stray blocking read()
+      # calls (e.g. in handshake()) return immediately instead of stalling
+      # for up to the old default of 1s.
+      self.ser.timeout = 0
       if not os.path.exists(self.enc_count_file):
           with open(self.enc_count_file, "w") as file:
               file.write("enc_count: 0\n")
@@ -48,30 +54,38 @@ class CartControl:
         self.ser.write(f"M,{speed}\n".encode('utf-8'))
 
     def read_encoders(self):
+        """Non-blocking read: poll in_waiting and assemble the line
+        ourselves so the 0.05s deadline below is an actual hard bound.
+        (A plain self.ser.readline() would block up to the port's own
+        timeout waiting for a newline, and the deadline check can't
+        interrupt a call that's already blocking -- it only gets
+        re-checked *between* calls.)
+        """
+        self.ser.reset_input_buffer()
         self.ser.write(b"R\n")
-        # line = self.ser.readline().decode('utf-8').strip()
-        # if line.startswith("E"):
-        #     parts = line.split(',')
-        #     return int(parts[1]), int(parts[2])
-        # return None, None
-        deadline = time.time() + 0.05 #0.5 second timeout
-        while time.time() < deadline:
-            line = self.ser.readline().decode('utf-8').strip()
 
-            if not line:
-                continue
-            if line.startswith("E"):
-                part = line.split(',')
-                if len(part) == 3:
-                    try:
-                        # raw_mag_val = int(part[1])
-                        mag_val = int(part[1])
-                        rotary_val = int(part[2])
-                        # if raw_mag_val != mag_val:
-                        #     print(f"DEBUG: raw pendulum count {raw_mag_val} wrapped to {mag_val}")
-                        return mag_val, rotary_val
-                    except ValueError:
-                        pass
+        deadline = time.time() + 0.05  # 50 ms hard timeout
+        buf = bytearray()
+
+        while time.time() < deadline:
+            n = self.ser.in_waiting
+            if n:
+                buf += self.ser.read(n)
+                while b'\n' in buf:
+                    raw_line, _, buf = buf.partition(b'\n')
+                    line = raw_line.decode('utf-8', errors='ignore').strip()
+                    if line.startswith("E"):
+                        part = line.split(',')
+                        if len(part) == 3:
+                            try:
+                                mag_val = int(part[1])
+                                rotary_val = int(part[2])
+                                return mag_val, rotary_val
+                            except ValueError:
+                                pass
+            else:
+                time.sleep(0.001)  # don't busy-spin the CPU while waiting
+
         return None, None
 
     def read_state(self, mag_val=None, rotary_val=None):
@@ -106,20 +120,32 @@ class CartControl:
 
     def force_to_motor(self, u):
         """Map a controller force command u (N, in [-u_max, u_max]) to the
-        integer [-255, 255] motor command."""
-        motor_val = constants.MOTOR_SIGN * (u / constants.u_max) * constants.MOTOR_MAX
-        motor_val = max(min(motor_val, constants.MOTOR_MAX), -constants.MOTOR_MAX)
-        return motor_val
+        integer [-255, 255] motor command, compensating for the motor's
+        deadband (no motion for |motor_val| < DEADBAND)."""
+        if u == 0:
+            return 0
+
+        # Normalized magnitude in [0, 1]
+        norm = min(abs(u) / constants.u_max, 1.0)
+
+        # Rescale so any nonzero command lands outside the deadband,
+        # spanning [DEADBAND, MOTOR_MAX] instead of [0, MOTOR_MAX]
+        boosted = constants.DEADBAND + norm * (constants.MOTOR_MAX - constants.DEADBAND)
+
+        sign = constants.MOTOR_SIGN * (1 if u > 0 else -1)
+        motor_val = sign * boosted
+
+        return int(max(min(motor_val, constants.MOTOR_MAX), -constants.MOTOR_MAX))
 
     def run_step(self, speed):
         mag_val, rotary_val = self.read_encoders()
 
         if mag_val is not None and rotary_val is not None:
-            if mag_val != self.last_mag_val or rotary_val != self.last_rotary_val:
-                print("MAG: raw-", mag_val, " rad-", mag_val * constants.PENDULUM_RAW_TO_RADIANS,
-                      " deg-", mag_val * constants.PENDULUM_RAW_TO_DEGREES, ", ROTARY: ", rotary_val)
-                self.last_mag_val = mag_val
-                self.last_rotary_val = rotary_val
+            # if mag_val != self.last_mag_val or rotary_val != self.last_rotary_val:
+            print("MAG: raw-", mag_val, " rad-", mag_val * constants.PENDULUM_RAW_TO_RADIANS,
+                  " deg-", mag_val * constants.PENDULUM_RAW_TO_DEGREES, ", ROTARY: ", rotary_val)
+                # self.last_mag_val = mag_val
+                # self.last_rotary_val = rotary_val
 
             speed = self.enforce_limits(speed, rotary_val)
 

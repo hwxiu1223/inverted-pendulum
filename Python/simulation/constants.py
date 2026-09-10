@@ -84,3 +84,6 @@ MOTOR_MAX = 255
 # command a small positive motor value and confirm the cart moves in the
 # +x direction (toward x_max).
 MOTOR_SIGN = -1
+
+
+DEADBAND = 50

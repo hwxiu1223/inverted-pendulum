@@ -34,15 +34,6 @@ the Arduino String class. String does heap alloc/free on every operation
 (readStringUntil, trim, substring), which fragments the tiny SRAM heap over
 a long-running loop() and eventually causes a silent lockup with no RX/TX
 activity. Fixed buffers use zero heap allocation, so this can run indefinitely.
-
-NOTE (rewired): the PENDULUM encoder is now the one wired to pins 2/3 and is
-interrupt-driven (attachInterrupt), because on the UNO R4 only pins 2/3 are
-pin-change-interrupt-capable. The CART encoder is now wired to pins 7/8 and
-is instead polled from a hardware timer (FspTimer) at a fixed rate, since
-7/8 can't be used with attachInterrupt() on this board. This is the mirror
-image of the previous wiring/logic (cart was interrupt-driven, pendulum was
-timer-polled) - the variable names (enc_count = cart, pend_count = pendulum)
-and the serial protocol are unchanged.
 */
 
 #include <Arduino.h>
@@ -52,21 +43,21 @@ and the serial protocol are unchanged.
 // #include "AS5600.h"
 
 ////// PIN ASSIGNMENTS //////
-const uint8_t PEND_A = 2; // pendulum angle encoder - interrupt-capable pin
-const uint8_t PEND_B = 3; // pendulum angle encoder - interrupt-capable pin
+const uint8_t PIN_A = 2;
+const uint8_t PIN_B = 3;
 const uint8_t R_PWM = 5; // Arduino PWM output pin 5; connect to IBT-2 pin 1 (RPWM)
 const uint8_t L_PWM = 6; // Arduino PWM output pin 6; connect to IBT-2 pin 2 (LPWM)
-const uint8_t PIN_A = 7; // cart encoder - polled via timer, not interrupt-capable on this board
-const uint8_t PIN_B = 8; // cart encoder - polled via timer, not interrupt-capable on this board
+const uint8_t PEND_A = 7; //pend angle enc
+const uint8_t PEND_B = 8;
 const uint8_t L_EN = 10;
 const uint8_t R_EN = 9;
 
-volatile long enc_count = 0;          // cart encoder count (polled)
-volatile uint8_t enc_prevState = 0;   // cart encoder previous quadrature state
+volatile long enc_count = 0;
+volatile uint8_t enc_prevState = 0;
 // volatile uint8_t magAngle = 0;
 
-volatile long pend_count = 0;             // pendulum encoder count (interrupt-driven)
-volatile uint8_t prev_pendState = 0;      // pendulum encoder previous quadrature state
+volatile long pend_count = 0;
+volatile uint8_t prev_pendState = 0;
 
 
 // index = (prevState<<2)|newState, each state is (A<<1)|B
@@ -78,41 +69,40 @@ static const int8_t QEM[16] = {
    0,  1, -1,  0
 };
 
-// Interrupt-driven: fires on any CHANGE of PEND_A/PEND_B (pins 2/3).
-void pendulumEncoderISR() {
-  uint8_t a = digitalRead(PEND_A);
-  uint8_t b = digitalRead(PEND_B);
-  uint8_t newState = (a << 1) | b;
-  uint8_t index = (prev_pendState << 2) | newState;
-  pend_count += QEM[index];
-  prev_pendState = newState;
-}
-
-
-// Called from a hardware timer interrupt (see beginCartTimer), NOT from loop().
-// This guarantees a fixed poll rate regardless of what loop() is doing (serial
-// parsing, Serial.print, motor commands, etc.), so we don't miss quadrature
-// transitions during a blocking Serial call.
-void cartEncoder_poll(timer_callback_args_t *arg) {
+void encoderISR() { 
   uint8_t a = digitalRead(PIN_A);
   uint8_t b = digitalRead(PIN_B);
-
   uint8_t newState = (a << 1) | b;
-
   uint8_t index = (enc_prevState << 2) | newState;
-
   enc_count += QEM[index];
-
   enc_prevState = newState;
 }
 
-// Sets up a Renesas GPT timer to call cartEncoder_poll() at a fixed rate.
-// Needed because PIN_A/PIN_B (pins 7/8) are not attachInterrupt()-capable
-// on the UNO R4 (only pins 2/3 are), so we can't use pin-change interrupts
-// for this encoder like we do for the pendulum encoder.
-FspTimer cartTimer;
 
-bool beginCartTimer(float rateHz) {
+// Called from a hardware timer interrupt (see beginPendulumTimer), NOT from loop().
+// This guarantees a fixed poll rate regardless of what loop() is doing (serial
+// parsing, Serial.print, motor commands, etc.), so we don't miss quadrature
+// transitions during a blocking Serial call.
+void pendulumEncoder_poll(timer_callback_args_t *arg) {
+  uint8_t a = digitalRead(PEND_A);
+  uint8_t b = digitalRead(PEND_B);
+
+  uint8_t newState = (a << 1) | b;
+
+  uint8_t index = (prev_pendState << 2) | newState;
+
+  pend_count += QEM[index];
+
+  prev_pendState = newState;
+}
+
+// Sets up a Renesas GPT timer to call pendulumEncoder_poll() at a fixed rate.
+// Needed because PEND_A/PEND_B (pins 7/8) are not attachInterrupt()-capable
+// on the UNO R4 (only pins 2/3 are), so we can't use pin-change interrupts
+// for this encoder like we do for the cart encoder.
+FspTimer pendTimer;
+
+bool beginPendulumTimer(float rateHz) {
   uint8_t timerType = GPT_TIMER;
   int8_t tIndex = FspTimer::get_available_timer(timerType);
   if (tIndex < 0) tIndex = FspTimer::get_available_timer(timerType, true);
@@ -120,7 +110,7 @@ bool beginCartTimer(float rateHz) {
 
   FspTimer::force_use_of_pwm_reserved_timer();
 
-  if (!cartTimer.begin(TIMER_MODE_PERIODIC, timerType, tIndex, rateHz, 0.0f, cartEncoder_poll)) return false;
+  if (!pendTimer.begin(TIMER_MODE_PERIODIC, timerType, tIndex, rateHz, 0.0f, pendulumEncoder_poll)) return false;
   // IMPORTANT: explicit low priority (15 = lowest on this core).
   // FspTimer::setup_overflow_irq() defaults to priority 12, which is the
   // SAME priority the R4's USB/Serial interrupt runs at. Equal-priority
@@ -128,9 +118,9 @@ bool beginCartTimer(float rateHz) {
   // repeatedly contends with USB servicing and eventually starves it,
   // causing exactly the "USB looks frozen" symptom. Priority 15 makes sure
   // USB always wins that contention.
-  if (!cartTimer.setup_overflow_irq(15)) return false;
-  if (!cartTimer.open()) return false;
-  if (!cartTimer.start()) return false;
+  if (!pendTimer.setup_overflow_irq(15)) return false;
+  if (!pendTimer.open()) return false;
+  if (!pendTimer.start()) return false;
   return true;
 }
 
@@ -170,10 +160,10 @@ void setup() {
   Serial.setTimeout(5);
 
   delay(100);
-  Serial.print("PEND_A interrupt#: "); Serial.println(digitalPinToInterrupt(PEND_A));
-  Serial.print("PEND_B interrupt#: "); Serial.println(digitalPinToInterrupt(PEND_B));
   Serial.print("PIN_A interrupt#: ");  Serial.println(digitalPinToInterrupt(PIN_A));
   Serial.print("PIN_B interrupt#: ");  Serial.println(digitalPinToInterrupt(PIN_B));
+  Serial.print("PEND_A interrupt#: "); Serial.println(digitalPinToInterrupt(PEND_A));
+  Serial.print("PEND_B interrupt#: "); Serial.println(digitalPinToInterrupt(PEND_B));
   // Wire.begin();
   // Wire.setClock(100000);       // stick to standard 100kHz — more noise-tolerant than 400kHz
   // Wire.setTimeout(50);         // ms; abort a stuck transaction instead of hanging indefinitely
@@ -181,28 +171,20 @@ void setup() {
   // magneticEncoder.begin();
 
   pinMode(LED_BUILTIN, OUTPUT);
-  pinMode(PEND_A, INPUT_PULLUP);
-  pinMode(PEND_B, INPUT_PULLUP);
   pinMode(PIN_A, INPUT_PULLUP);
   pinMode(PIN_B, INPUT_PULLUP);
-
-  // Initialize the pendulum's prev-state before attaching its interrupt so
-  // the first transition after boot is computed correctly.
+  pinMode(PEND_A, INPUT_PULLUP);
+  pinMode(PEND_B, INPUT_PULLUP);
   uint8_t pendA = digitalRead(PEND_A);
   uint8_t pendB = digitalRead(PEND_B);
   prev_pendState = (pendA << 1) | pendB;
 
-  // Initialize the cart's prev-state before the timer starts polling it,
-  // for the same reason.
-  uint8_t cartA = digitalRead(PIN_A);
-  uint8_t cartB = digitalRead(PIN_B);
-  enc_prevState = (cartA << 1) | cartB;
 
-  attachInterrupt(digitalPinToInterrupt(PEND_A), pendulumEncoderISR, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(PEND_B), pendulumEncoderISR, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(PIN_A), encoderISR, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(PIN_B), encoderISR, CHANGE);
 
-  if (!beginCartTimer(80000.0f)) {
-    Serial.println("CART_TIMER_FAIL");
+  if (!beginPendulumTimer(80000.0f)) {
+    Serial.println("PEND_TIMER_FAIL");
   }
 
   bool ready = false;
@@ -269,12 +251,12 @@ void loop() {
       interrupts();
 
       // Send back:
-      // E,cartCount,pendulumCount
+      // E,pendulumCount,cartCount
 
       Serial.print("E,");
-      Serial.print(currentPendCount);
+      Serial.print(currentCartCount);
       Serial.print(",");
-      Serial.println(currentCartCount);
+      Serial.println(currentPendCount);
     }
 
     // Reset arduino
