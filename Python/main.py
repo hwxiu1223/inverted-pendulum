@@ -144,7 +144,7 @@ def control_step():
     motor_val = cart.force_to_motor(u)
     motor_val = cart.enforce_limits(motor_val, rotary_val)
     cart.set_motor(motor_val)
-    print("u val", u, ", Motor: ", motor_val, ", PEND: ", mag_val, ", CART: ", rotary_val)
+    print("u val", u, ", Motor: ", motor_val, ", PEND: ", mag_val, ", Theta: ", theta, ", CART: ", rotary_val)
     log.write(
         f"{now:.3f} u val {u}, Motor: {motor_val}, PEND: {mag_val}, CART: {rotary_val}\n"
     )
