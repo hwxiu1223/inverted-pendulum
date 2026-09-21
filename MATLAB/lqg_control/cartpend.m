@@ -1,7 +1,7 @@
 function dy = cartpend(y,u,params)
 
     g = params.g;
-    L = params.L; % Length of the penduLum
+    L = params.L; % Length of the pendulum
     m = params.m;
     M = params.M;
     d = params.d;

@@ -1,4 +1,4 @@
-function [u, xhat_nxt] = hybrid_controller_lqg(t, xhat, y_meas, params, K, L_gain, A, B, C, dt)
+function [u, xhat_next] = hybrid_controller_lqg(t, xhat, y_meas, params, K, L_gain, A, B, C, dt)
     % hybrid_controller_lqg modified swing-up and lqg balancing controller
     % driven by Kalman filter estimate
 
@@ -31,13 +31,15 @@ else
         u = params.u_max;
 
     % swing-up law
+    % kv for damping kx for centering
     else
         g_mag = abs(params.g);
         E = 0.5*J* xhat(4)^2 - params.m * g_mag * params.L * cos(theta_hat);
         E_target = params.m * g_mag * params.L;
         ke = 24.0;
         kv = 0.2;
-        u = ke * (E - E_target) * xhat(4) * cos(theta_hat) - kv * xhat(2);
+        kx = 2.0;
+        u = ke * (E - E_target) * xhat(4) * cos(theta_hat) - kv * xhat(2) - kx * xhat(1);
     end
 end
 
@@ -51,29 +53,9 @@ else
 end
     u = max(min(u, u_max_eff), -u_max_eff);
 
-% track limits
-    u_wall = track_limit_force(xhat(1), xhat(2), params);
-    u = u + u_wall;
-
 % final hard clamp: never command more than the motor's absolute max,
     u = max(min(u, params.u_max), -params.u_max);
 
 % kalman filter stuff using simple forward-Euler step of length dt
 dxhat_nonlin = cartpend(xhat, u, params);
-xhat_nxt = xhat + dt*dxhat_nonlin + dt*L_gain*(y_meas - C*xhat);
- 
-% adjusted force as cart enters marginal distance from wall
-function u_wall = track_limit_force(x, dx, params)
-    u_wall = 0;
-    margin = params.x_margin;
- 
-    if (x) > (params.x_max - margin)
-        penetration = (x) - (params.x_max - margin);
-        u_wall = -params.k_wall*penetration - params.c_wall*max(dx, 0);
-    elseif (x) < (params.x_min + margin)
-        penetration = (x) - (params.x_min + margin);
-        u_wall = -params.k_wall*penetration - params.c_wall*min(dx, 0);
-    end
-end
-end
- 
+xhat_next = xhat + dt*dxhat_nonlin + dt*L_gain*(y_meas - C*xhat);

@@ -37,7 +37,7 @@ params = pendsys();
 
     % K runs everything through the lqr cost function and returns an
     % optimized value that will be given to the input for control
-    Q = [200 0 0 0;
+    Q = [300 0 0 0;
         0 0 0 0;
         0 0 1000 0;
         0 0 0 0];
@@ -65,7 +65,7 @@ params = pendsys();
 
     % simulation settings (using fixed step)
     dt = 0.002;     % estimator update / control period (s)
-    Tfinal = 30;
+    Tfinal = 10;
     N = round(Tfinal/dt) + 1;    % total number of points for time grid
     t_hist = (0:N-1)'*dt;        % build fixed time grid
 
