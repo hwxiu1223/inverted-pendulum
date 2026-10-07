@@ -141,4 +141,10 @@
     color: var(--text-dim);
     font-size: 0.8rem;
   }
- 
+ .project-photo {
+     max-width: 100%;
+     height: auto;
+     border-radius: 8px;
+     margin: 12px auto;
+     display: block;
+   }
