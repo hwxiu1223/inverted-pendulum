@@ -14,11 +14,7 @@ class CartControl:
       self.last_mag_val = None
       self.last_rotary_val = None
       self.last_speed_val = 0
-      # read_encoders() below enforces its own hard wall-clock deadline via
-      # in_waiting polling, so the port itself should never block waiting
-      # for a newline. A near-zero timeout makes any stray blocking read()
-      # calls (e.g. in handshake()) return immediately instead of stalling
-      # for up to the old default of 1s.
+
       self.ser.timeout = 0
       if not os.path.exists(self.enc_count_file):
           with open(self.enc_count_file, "w") as file:
@@ -54,13 +50,6 @@ class CartControl:
         self.ser.write(f"M,{speed}\n".encode('utf-8'))
 
     def read_encoders(self):
-        """Non-blocking read: poll in_waiting and assemble the line
-        ourselves so the 0.05s deadline below is an actual hard bound.
-        (A plain self.ser.readline() would block up to the port's own
-        timeout waiting for a newline, and the deadline check can't
-        interrupt a call that's already blocking -- it only gets
-        re-checked *between* calls.)
-        """
         self.ser.reset_input_buffer()
         self.ser.write(b"R\n")
 
@@ -89,17 +78,6 @@ class CartControl:
         return None, None
 
     def read_state(self, mag_val=None, rotary_val=None):
-        """Convert raw encoder counts into the physical units the simulation
-        and LQG controller work in: (x, theta) in meters and radians.
-
-        Pass in already-read (mag_val, rotary_val) to avoid a redundant
-        serial round-trip when the caller already has a fresh reading
-        (e.g. inside the real-time control loop); otherwise this reads the
-        encoders itself.
-
-        Returns (x, theta, mag_val, rotary_val), or (None, None, None, None)
-        if the encoders couldn't be read.
-        """
         if mag_val is None or rotary_val is None:
             mag_val, rotary_val = self.read_encoders()
 
@@ -112,16 +90,11 @@ class CartControl:
         return x, theta, mag_val, rotary_val
 
     def enforce_limits(self, motor_val, rotary_val):
-        """Cut motor command to zero if the soft-lock is engaged and the
-        cart is being driven further past its end-of-travel encoder count."""
         if self.locked and ((motor_val > 0 and rotary_val < 3000) or (motor_val < 0 and rotary_val > 57000)):
             return 0
         return motor_val
 
     def force_to_motor(self, u):
-        """Map a controller force command u (N, in [-u_max, u_max]) to the
-        integer [-255, 255] motor command, compensating for the motor's
-        deadband (no motion for |motor_val| < DEADBAND)."""
         if u == 0:
             return 0
 

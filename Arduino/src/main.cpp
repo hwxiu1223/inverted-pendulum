@@ -37,12 +37,6 @@ the Arduino String class. String does heap alloc/free on every operation
 a long-running loop() and eventually causes a silent lockup with no RX/TX
 activity. Fixed buffers use zero heap allocation, so this can run indefinitely.
 
-NOTE (rewired again): the cart encoder used to be polled from a 20 kHz
-FspTimer on D7/D8. That was too slow for the cart at full speed: whenever the
-encoder moved 2+ quadrature states between samples, the QEM table returned 0
-(or the wrong sign) and counts were lost, so the cart only reached ~15000 of
-its ~60000 count travel.
-
 The cart encoder is now interrupt-driven, using the RA4M1's ICU (external IRQ
 controller) directly through FSP instead of attachInterrupt():
   - D12 = P110 = IRQ3  (cart A)
@@ -68,10 +62,9 @@ const uint8_t L_PWM = 6; // Arduino PWM output pin 6; connect to IBT-2 pin 2 (LP
 const uint8_t L_EN = 10;
 const uint8_t R_EN = 9;
 
-// Cart encoder - raw ICU external interrupts (NOT attachInterrupt).
-// These are MCU port pins, not Arduino pin numbers.
-const bsp_io_port_pin_t CART_A_PIN = BSP_IO_PORT_04_PIN_10;  // header D12, correct port
-const bsp_io_port_pin_t CART_B_PIN = BSP_IO_PORT_03_PIN_04;  // header D8  (unchanged)
+// ICU external interrupts
+const bsp_io_port_pin_t CART_A_PIN = BSP_IO_PORT_04_PIN_10;  // header D12
+const bsp_io_port_pin_t CART_B_PIN = BSP_IO_PORT_03_PIN_04;  // header D8
 const uint8_t CART_A_IRQ = 5;   // P110 -> IRQ3
 const uint8_t CART_B_IRQ = 9;   // P304 -> IRQ9
 
@@ -94,7 +87,7 @@ static const int8_t QEM[16] = {
    0,  1, -1,  0
 };
 
-// Interrupt-driven: fires on any CHANGE of PEND_A/PEND_B (pins 2/3).
+// ISR for rotary encoder
 void pendulumEncoderISR() {
   uint8_t a = digitalRead(PEND_A);
   uint8_t b = digitalRead(PEND_B);
@@ -104,28 +97,12 @@ void pendulumEncoderISR() {
   prev_pendState = newState;
 }
 
-
-// Fires on BOTH edges of cart A (IRQ3) and cart B (IRQ9).
-// Uses direct port reads (R_BSP_PinRead) instead of digitalRead() because the
-// cart encoder produces tens of thousands of edges per second at full speed,
-// and digitalRead() goes through a pin-table lookup on every call.
-void cartEncoderISR(external_irq_callback_args_t *args) {
-  cartIsrHits++;
-  (void)args;
-  uint8_t a = (uint8_t)R_BSP_PinRead(CART_A_PIN);
-  uint8_t b = (uint8_t)R_BSP_PinRead(CART_B_PIN);
-  uint8_t newState = (a << 1) | b;
-  enc_count += QEM[(enc_prevState << 2) | newState];
-  enc_prevState = newState;
-}
-
-// ICU control/config blocks - must stay alive for the whole program (static).
+// ICU control/config blocks
 static icu_instance_ctrl_t cartA_ctrl, cartB_ctrl;
 static external_irq_cfg_t  cartA_cfg,  cartB_cfg;
 
 // Configures one pin as an external IRQ input on the given ICU channel,
-// bypassing attachInterrupt(). Same underlying mechanism the core uses, but
-// we choose the channel ourselves.
+// bypassing attachInterrupt().
 bool setupExternalIrq(icu_instance_ctrl_t &ctrl, external_irq_cfg_t &cfg,
                       bsp_io_port_pin_t pin, uint8_t channel,
                       void (*cb)(external_irq_callback_args_t *)) {
@@ -135,25 +112,16 @@ bool setupExternalIrq(icu_instance_ctrl_t &ctrl, external_irq_cfg_t &cfg,
         IOPORT_CFG_PULLUP_ENABLE |
         IOPORT_CFG_IRQ_ENABLE) != FSP_SUCCESS) return false;
 
-  // CRITICAL: IRQManager only allocates a new vector slot if irq is
-  // FSP_INVALID_VECTOR. A zero-initialized struct has irq = 0, which it
-  // treats as "already assigned to vector 0" - so the ICU driver would
-  // overwrite the context of whatever peripheral owns slot 0 (e.g. USB),
-  // crashing Serial. attachInterrupt() in the core does this same step.
   cfg.irq           = FSP_INVALID_VECTOR;
   cfg.channel       = channel;
   cfg.trigger       = EXTERNAL_IRQ_TRIG_BOTH_EDGE;  // quadrature needs both edges
   cfg.filter_enable = false;                        // digital filter adds latency
-  // If this line fails to compile, your FSP version calls it clock_source_div
-  // (check r_external_irq_api.h). Value is irrelevant with the filter off.
   cfg.pclk_div      = EXTERNAL_IRQ_PCLK_DIV_BY_1;
   cfg.ipl           = 15;
   cfg.p_callback    = cb;
   cfg.p_context     = nullptr;
   cfg.p_extend      = nullptr;
 
-  // Let the core allocate a vector slot and link the ICU event to it
-  // (this fills in cfg.irq).
   if (!IRQManager::getInstance().addPeripheral(IRQ_EXTERNAL_PIN, &cfg)) return false;
 
   if (R_ICU_ExternalIrqOpen(&ctrl, &cfg) != FSP_SUCCESS) return false;
@@ -165,22 +133,15 @@ bool setupExternalIrq(icu_instance_ctrl_t &ctrl, external_irq_cfg_t &cfg,
 BTS7960 motorDriver(L_EN, R_EN, L_PWM, R_PWM);
 // AS5600 magneticEncoder;
 
-////// SERIAL PARSING BUFFER //////
-// Fixed-size buffer replaces Arduino String to avoid heap fragmentation.
-// 32 bytes is generous for "M,-255\n" / "R\n" / "ST\n" / "RET,65535\n" style messages;
-// increase if you ever send longer commands.
 const uint8_t BUF_SIZE = 32;
 char inputBuffer[BUF_SIZE];
 
-// Reads a line (up to '\n') into inputBuffer, trims trailing \r, null-terminates.
-// Returns true if a full line was read, false if nothing was available.
 bool readLineNonBlocking() {
   if (Serial.available() == 0) return false;
 
   size_t len = Serial.readBytesUntil('\n', inputBuffer, BUF_SIZE - 1);
   inputBuffer[len] = '\0';
 
-  // Trim a trailing '\r' left over from CRLF line endings
   if (len > 0 && inputBuffer[len - 1] == '\r') {
     inputBuffer[len - 1] = '\0';
   }
@@ -190,30 +151,17 @@ bool readLineNonBlocking() {
 
 void setup() {
   Serial.begin(115200);
-  // Default Serial timeout is 1000ms: if readBytesUntil() is called with a
-  // partial line already in the buffer (no '\n' yet), it will BLOCK for up
-  // to this long waiting for more bytes. During that block, nothing else in
-  // loop() runs. Keep this short so a partial/garbled line can't stall us.
   Serial.setTimeout(5);
 
   Serial.println("BOOT");
 
   delay(100);
-  // Wire.begin();
-  // Wire.setClock(100000);       // stick to standard 100kHz — more noise-tolerant than 400kHz
-  // Wire.setTimeout(50);         // ms; abort a stuck transaction instead of hanging indefinitely
   motorDriver.Enable();
-  // magneticEncoder.begin();
 
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(PEND_A, INPUT_PULLUP);
   pinMode(PEND_B, INPUT_PULLUP);
-  // NOTE: do NOT call pinMode() on D8 or D12 anywhere. pinMode() rewrites the
-  // pin's PFS register and clears the IRQ-enable bit, silently killing the
-  // cart interrupts. setupExternalIrq() configures those pins itself.
 
-  // Initialize the pendulum's prev-state before attaching its interrupt so
-  // the first transition after boot is computed correctly.
   uint8_t pendA = digitalRead(PEND_A);
   uint8_t pendB = digitalRead(PEND_B);
   prev_pendState = (pendA << 1) | pendB;
@@ -221,11 +169,17 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(PEND_A), pendulumEncoderISR, CHANGE);
   attachInterrupt(digitalPinToInterrupt(PEND_B), pendulumEncoderISR, CHANGE);
 
-  // Cart encoder: raw ICU interrupts on D12 (A, IRQ3) and D8 (B, IRQ9).
   bool okA = setupExternalIrq(cartA_ctrl, cartA_cfg, CART_A_PIN, CART_A_IRQ, cartEncoderISR);
   bool okB = setupExternalIrq(cartB_ctrl, cartB_cfg, CART_B_PIN, CART_B_IRQ, cartEncoderISR);
   if (!okA) Serial.println("CART_IRQ_A_FAIL");
   if (!okB) Serial.println("CART_IRQ_B_FAIL");
+
+  while (!okA || !okB) {
+    digitalWrite(LED_BUILTIN, HIGH);
+    delay(100);
+    digitalWrite(LED_BUILTIN, LOW);
+    delay(100);
+  }
 
   // Initialize the cart's prev-state (pins are configured as inputs now).
   noInterrupts();
@@ -247,7 +201,6 @@ void setup() {
         char* commaPos = strchr(inputBuffer, ',');
         if (commaPos != nullptr) {
           long saved = atol(commaPos + 1);
-          // Cart ISR is live now; block it so it can't race this write.
           noInterrupts();
           enc_count = saved;
           interrupts();
@@ -257,28 +210,21 @@ void setup() {
       }
     }
   }
+
+  pend_count = 0;
 }
 
 void loop() {
-  // TEMPORARY DIAGNOSTIC: blink LED_BUILTIN every 250ms using only millis(),
-  // no Serial calls involved. If this keeps blinking during a "freeze", the
-  // CPU is alive and the real problem is Serial.print() blocking (e.g. your
-  // Python side not reading fast enough, filling the USB TX buffer). If this
-  // ALSO stops blinking, the CPU/ISR side has actually locked up. Remove once
-  // the freeze cause is confirmed.
-  static uint32_t lastBlink = 0;
-  if (millis() - lastBlink >= 250) {
-    lastBlink = millis();
-    digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
-  }
-
-  static uint32_t lastReport = 0;
-  if (millis() - lastReport >= 1000) {
-    lastReport = millis();
-    Serial.print("cartIsrHits/s: ");
-    Serial.println(cartIsrHits);
-    cartIsrHits = 0;
-  }
+  // static uint32_t lastDump = 0;
+  // if (millis() - lastDump >= 100) {
+  //   lastDump = millis();
+  //   uint8_t a = digitalRead(PEND_A);
+  //   uint8_t b = digitalRead(PEND_B);
+  //   Serial.print("PEND A="); Serial.print(a);
+  //   Serial.print(" B="); Serial.print(b);
+  //   Serial.print(" state="); Serial.print((a<<1)|b);
+  //   Serial.print(" count="); Serial.println(pend_count);
+  // }
 
   if (readLineNonBlocking()) {
     // Parse Motor Command (e.g., "M,150")

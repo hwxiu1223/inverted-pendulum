@@ -1,1 +1,1 @@
-enc_count: 29818
+enc_count: 24757
