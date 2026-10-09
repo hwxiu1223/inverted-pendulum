@@ -1,10 +1,10 @@
 # cart_control.py
-import time
 import os
-import constants
-from config import COM_PORT
+import time
 
-AS5600_RAW_TO_RADIANS, AS5600_RAW_TO_DEGREES = constants.AS5600_RAW_TO_RADIANS, constants.AS5600_RAW_TO_DEGREES
+from config import COM_PORT
+from simulation import constants
+from simulation.lqg_controller import wrap_to_pi
 
 class CartControl:
     def __init__(self, ser, enc_count_file):
@@ -14,6 +14,8 @@ class CartControl:
       self.last_mag_val = None
       self.last_rotary_val = None
       self.last_speed_val = 0
+
+      self.ser.timeout = 0
       if not os.path.exists(self.enc_count_file):
           with open(self.enc_count_file, "w") as file:
               file.write("enc_count: 0\n")
@@ -40,7 +42,7 @@ class CartControl:
                 print("Sending: ", f"RET, {saved_enc_count}")
             elif response == 'REC':
                 break
-            time.sleep(0.1)
+            time.sleep(0.5)
         return saved_enc_count
     
 
@@ -48,43 +50,78 @@ class CartControl:
         self.ser.write(f"M,{speed}\n".encode('utf-8'))
 
     def read_encoders(self):
+        self.ser.reset_input_buffer()
         self.ser.write(b"R\n")
-        # line = self.ser.readline().decode('utf-8').strip()
-        # if line.startswith("E"):
-        #     parts = line.split(',')
-        #     return int(parts[1]), int(parts[2])
-        # return None, None
-        deadline = time.time() + 0.05 #0.5 second timeout
-        while time.time() < deadline:
-            line = self.ser.readline().decode('utf-8').strip()
 
-            if not line:
-                continue
-            if line.startswith("E"):
-                part = line.split(',')
-                if len(part) == 3:
-                    try:
-                        mag_val = int(part[1])
-                        rotary_val = int(part[2])
-                        return mag_val, rotary_val
-                    except ValueError:
-                        pass
+        deadline = time.time() + 0.05  # 50 ms hard timeout
+        buf = bytearray()
+
+        while time.time() < deadline:
+            n = self.ser.in_waiting
+            if n:
+                buf += self.ser.read(n)
+                while b'\n' in buf:
+                    raw_line, _, buf = buf.partition(b'\n')
+                    line = raw_line.decode('utf-8', errors='ignore').strip()
+                    if line.startswith("E"):
+                        part = line.split(',')
+                        if len(part) == 3:
+                            try:
+                                mag_val = int(part[1]) % constants.PENDULUM_COUNTS_PER_REV
+                                rotary_val = int(part[2])
+                                return mag_val, rotary_val
+                            except ValueError:
+                                pass
+            else:
+                time.sleep(0.001)  # don't busy-spin the CPU while waiting
+
         return None, None
-                
+
+    def read_state(self, mag_val=None, rotary_val=None):
+        if mag_val is None or rotary_val is None:
+            mag_val, rotary_val = self.read_encoders()
+
+        if mag_val is None or rotary_val is None:
+            return None, None, None, None
+
+        theta = wrap_to_pi((mag_val - constants.PENDULUM_ZERO_RAW) * constants.PENDULUM_RAW_TO_RADIANS)
+        x = (rotary_val - constants.ROTARY_CENTER) * constants.METERS_PER_COUNT
+
+        return x, theta, mag_val, rotary_val
+
+    def enforce_limits(self, motor_val, rotary_val):
+        if self.locked and ((motor_val > 0 and rotary_val < 3000) or (motor_val < 0 and rotary_val > 57000)):
+            return 0
+        return motor_val
+
+    def force_to_motor(self, u):
+        if u == 0:
+            return 0
+
+        # Normalized magnitude in [0, 1]
+        norm = min(abs(u) / constants.u_max, 1.0)
+
+        # Rescale so any nonzero command lands outside the deadband,
+        # spanning [DEADBAND, MOTOR_MAX] instead of [0, MOTOR_MAX]
+        boosted = constants.DEADBAND + norm * (constants.MOTOR_MAX - constants.DEADBAND)
+
+        sign = constants.MOTOR_SIGN * (1 if u > 0 else -1)
+        motor_val = sign * boosted
+
+        return int(max(min(motor_val, constants.MOTOR_MAX), -constants.MOTOR_MAX))
 
     def run_step(self, speed):
         mag_val, rotary_val = self.read_encoders()
 
         if mag_val is not None and rotary_val is not None:
-            if mag_val != self.last_mag_val or rotary_val != self.last_rotary_val:
-                print("MAG: raw-", mag_val, " rad-", mag_val * AS5600_RAW_TO_RADIANS,
-                      " deg-", mag_val * AS5600_RAW_TO_DEGREES, ", ROTARY: ", rotary_val)
-                self.last_mag_val = mag_val
-                self.last_rotary_val = rotary_val
+            # if mag_val != self.last_mag_val or rotary_val != self.last_rotary_val:
+            print("MAG: raw-", mag_val, " rad-", mag_val * constants.PENDULUM_RAW_TO_RADIANS,
+                  " deg-", mag_val * constants.PENDULUM_RAW_TO_DEGREES, ", ROTARY: ", rotary_val)
+                # self.last_mag_val = mag_val
+                # self.last_rotary_val = rotary_val
 
-            if self.locked and ((speed > 0 and rotary_val < 3000) or (speed < 0 and rotary_val > 57000)):
-                speed = 0
-            
+            speed = self.enforce_limits(speed, rotary_val)
+
             self.set_motor(speed)
             if speed != self.last_speed_val:
                 print("Set motor: ", speed)
@@ -127,15 +164,15 @@ class CartControl:
                 return None
 
             error = rot_val - 30000
-            if abs(error) <= 10:
+            if abs(error) <= 100:
                 break
 
             if abs(error) > 2000:
                 speed = 255 if error > 0 else -255
             else:
                 speed = (255 / 2000) * error
-                if abs(speed) < 40:
-                    speed = 40 if speed > 0 else -40
+                if abs(speed) < 50:
+                    speed = 50 if speed > 0 else -50
 
             self.set_motor(speed)
             time.sleep(0.01)
